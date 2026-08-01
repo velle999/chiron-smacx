@@ -25,9 +25,10 @@ onto induktio. It is deliberately *not* a submodule; clone it inside this one.
 
 ## What the mod adds
 
-Five things, all of which fall back silently to stock behaviour if the bridge is
-down or a reply is unusable. There is no failure mode where a dialogue box comes
-up empty.
+Six things. The five generated ones all fall back silently to stock behaviour if
+the bridge is down or a reply is unusable — there is no failure mode where a
+dialogue box comes up empty. The factions are ordinary data files and work with
+no model at all.
 
 | | |
 |---|---|
@@ -36,6 +37,7 @@ up empty.
 | **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
 | **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
 | **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
+| **Two new factions** | Kaya's Sufficiency and the Cassandra Directorate — playable, with artwork, voices and base-name pools. No model required. See [Factions](#factions) |
 
 ## Quickstart
 
@@ -364,6 +366,45 @@ same 30-turn clock.
 The warning is stored in a block of `MFaction` the engine already saves, so it
 survives save/load with no save format of ours, and `sizeof(MFaction) == 1436`
 still holds. Set `probe_protests=0` in `chiron.ini` to turn the whole thing off.
+
+## Factions
+
+Two new playable factions, in `factions/`. Unlike everything above they are
+ordinary SMACX data files — no bridge, no model, no DLL involvement.
+
+| | |
+|---|---|
+| **Kaya's Sufficiency** (`SUFFIC.TXT`) | The degrowth argument. `IMPUNITY, Eudaimonic` and a `PENALTY` on Free Market |
+| **The Cassandra Directorate** (`ORACLE.TXT`) | The information argument — not stealing secrets, knowing anyway and being disbelieved for it. `VOTES, 0` and `COMMFREQ` |
+
+Each ships a leader portrait and insignia, a `.flc` animation, a voice, and an
+expanded base-name pool that Chiron few-shots from when it names new bases.
+
+**Copying the files in is not enough to see them, and nothing errors if you
+stop there.** SMACX does not scan a directory for factions — `prefs_fac_load()`
+reads seven fixed slots out of `Alpha Centauri.Ini` (`Faction 1` … `Faction 7`)
+and `MaxPlayerNum` is 8, so **a new faction has to displace one of the seven**.
+Install and expect them to appear and the picker simply shows the same seven as
+before. Two helpers handle it:
+
+```bash
+factions/register.py     # add them to alphax.txt's #CUSTOMFACTIONS block
+factions/roster.py       # choose which seven actually play
+factions/validate.py     # structural check against the shipped faction files
+```
+
+The vanilla ini and `alphax.txt` are kept in `_vanilla_backup/`.
+
+> **`<faction>.pcx` is a sprite atlas, not a portrait.** Treating it as a single
+> image is what made new bases render invisible — the file also carries the base
+> and unit sprites. `art/repaint_atlas.py` replaces only the leader portrait and
+> insignia within a donor atlas, which is why the Sufficiency and the Directorate
+> no longer wear Deirdre's and Zakharov's faces.
+
+Design notes — why these two arguments and not the obvious ones, which keywords
+were still unclaimed across all fourteen shipped factions, and why "being right
+and disbelieved" has to live in the generated persona rather than in
+`FACTION.TXT` — are in [`factions/README.md`](factions/README.md).
 
 ## Install
 
