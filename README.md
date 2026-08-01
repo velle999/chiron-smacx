@@ -131,6 +131,20 @@ The bridge tries those in order, or one named with `--backend`. Only the first
 needs SynapseOS; the other two need nothing but a listening port, which is what
 makes the pack runnable anywhere.
 
+**The bridge is optional.** Set `backend=ollama` or `backend=llamacpp` in
+`chiron.ini` and the DLL talks to that server directly:
+
+```
+terranx.exe ──imports──> thinker.dll ──HTTP──> ollama :11434
+```
+
+Only three things differ between them — the request path, the shape of the body,
+and the key holding the reply — and llama.cpp's OpenAI-compatible endpoint even
+returns `text` like the bridge does. Direct mode loses the fallback chain and the
+synapd restart; it gains not having a second process that has to be running.
+That matters most on Windows, where there is no systemd to keep the bridge alive
+but ollama is already a service. Leave `port` unset and it follows the backend.
+
 `text_open()` is the single funnel every labelled text block in the game passes
 through. Once the engine has seeked to a `#LABEL`, Chiron reads the vanilla
 block, writes the rewrite to `chiron_gen.txt`, and calls the engine's *own*
@@ -380,18 +394,19 @@ unpacked here, or a DLL you built.
 .\install.ps1 -Restore                          # undo everything
 ```
 
-Two things differ from the Linux install, both because of the platform rather
-than the mod:
+**There is no bridge by default.** `-Backend ollama` writes `backend=ollama`
+into `chiron.ini` and the DLL talks to ollama directly, so nothing extra has to
+be kept running — which is the point, because there is no systemd here to keep a
+bridge alive and ollama is already a service. Make sure it has the model:
+`ollama pull llama3.2`, or pass `-Model` for another.
 
-- **No systemd**, so the bridge does not become a service. The script writes
-  `start-bridge.cmd` — run it before you play, or pass `-InstallBridgeTask` to
-  register a Scheduled Task that starts it at logon. With the bridge down the
-  mod silently shows the game's original dialogue.
-- **No synapd.** It is SynapseOS-only and speaks over a unix socket that does
-  not exist on Windows, so `-Backend` picks `llamacpp` (default) or `ollama`.
-  Naming one also saves the bridge a failed probe on every request.
+`-Backend bridge` gets you the fallback chain instead, at the cost of a process
+you have to start. The script writes `start-bridge.cmd` for that, and
+`-InstallBridgeTask` registers a Scheduled Task at logon. With the bridge chosen
+but not running, the mod silently shows the game's original dialogue.
 
-Check the bridge is answering with `curl http://127.0.0.1:11436/health`.
+synapd is not offered at all: it is SynapseOS-only and speaks over a unix socket
+that does not exist on Windows.
 
 If you are building rather than unpacking a release, the compiler rule under
 [From source](#from-source) is unchanged and is still the thing that bites:
@@ -579,7 +594,9 @@ changes, and Scient's, to the in-memory image at startup.
 | `probe_protests` | `0` disables objecting to probe operations |
 | `max_tokens` | Reply length against the in-game pause. **110** is a paragraph |
 | `timeout_ms` | Give up and use vanilla text after this |
-| `host`, `port` | Where the bridge is listening |
+| `backend` | `bridge` (default), or `ollama` / `llamacpp` to skip the bridge entirely |
+| `model` | ollama only: which model to ask for |
+| `host`, `port` | Where that server is listening. Unset `port` follows the backend — 11436 / 11434 / 8080 |
 | `debug` | `1` writes `chiron.txt`: every label, whether it was rewritten, and why anything was rejected |
 
 > `max_tokens` in the ini **overrides** the default compiled into the DLL, so

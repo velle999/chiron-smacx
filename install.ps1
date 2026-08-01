@@ -13,8 +13,10 @@
       * There is no systemd, so the bridge is not enabled as a service. This
         writes start-bridge.cmd next to the script and can register a logon task
         with -InstallBridgeTask.
-      * synapd is SynapseOS-only and its socket does not exist here, so the
-        bridge is pointed at llama.cpp or ollama with -Backend.
+      * synapd is SynapseOS-only and its socket does not exist here. With
+        -Backend ollama (the default) the DLL talks to ollama directly and
+        there is no bridge process at all, which is the point: ollama already
+        runs as a service on Windows, so nothing extra has to be kept alive.
 
     UNTESTED ON WINDOWS. It is written from the Linux installer and the game's
     file layout; the author develops on Linux with Steam/Proton. If it goes
@@ -25,11 +27,15 @@
     locations when omitted.
 
 .PARAMETER Backend
-    Which model server the bridge should use: llamacpp (default) or ollama.
+    Where the mod gets its text. 'ollama' (default) and 'llamacpp' talk to
+    those servers directly and need no bridge process. 'bridge' runs
+    chiron-bridge, which adds a fallback chain but has to be kept running --
+    there is no systemd here, so that is a manual step or a Scheduled Task.
     synapd is deliberately not offered; it does not run on Windows.
 
 .PARAMETER InstallBridgeTask
-    Also register a Scheduled Task that starts the bridge at logon.
+    Only meaningful with -Backend bridge: register a Scheduled Task that starts
+    the bridge at logon.
 
 .PARAMETER Restore
     Undo: put back the vanilla terranx.exe and the files in _vanilla_backup\.
@@ -37,15 +43,18 @@
 .EXAMPLE
     .\install.ps1
 .EXAMPLE
-    .\install.ps1 -Game "D:\Games\Alpha Centauri" -Backend ollama -InstallBridgeTask
+    .\install.ps1 -Game "D:\Games\Alpha Centauri" -Model mistral
+.EXAMPLE
+    .\install.ps1 -Backend bridge -InstallBridgeTask
 .EXAMPLE
     .\install.ps1 -Restore
 #>
 [CmdletBinding()]
 param(
     [string]$Game,
-    [ValidateSet('llamacpp', 'ollama')]
-    [string]$Backend = 'llamacpp',
+    [ValidateSet('ollama', 'llamacpp', 'bridge')]
+    [string]$Backend = 'ollama',
+    [string]$Model = 'llama3.2',
     [switch]$InstallBridgeTask,
     [switch]$Restore
 )
@@ -182,8 +191,19 @@ foreach ($d in 'basenames', 'smac_mod', 'german') {
 }
 
 Copy-Item (Join-Path $build 'thinker.dll') (Join-Path $Game 'thinker.dll') -Force
-Copy-Item (Join-Path $Src 'chiron.ini')    (Join-Path $Game 'chiron.ini')  -Force
-Note 'installed thinker.dll (chiron build), chiron.ini'
+
+<#
+chiron.ini is rewritten rather than copied, so the backend picked above is the
+one the DLL actually uses. Everything else in the shipped file is kept.
+#>
+$port = @{ ollama = 11434; llamacpp = 8080; bridge = 11436 }[$Backend]
+(Get-Content (Join-Path $Src 'chiron.ini')) |
+    ForEach-Object {
+        $_ -replace '^backend=.*', "backend=$Backend" `
+           -replace '^model=.*',   "model=$Model" `
+           -replace '^port=.*',    "port=$port"
+    } | Set-Content -Path (Join-Path $Game 'chiron.ini') -Encoding ASCII
+Note "installed thinker.dll (chiron build), chiron.ini (backend=$Backend, port=$port)"
 
 # ── import-table redirect ──────────────────────────────────────────────────
 # Makes terranx.exe load the DLL by itself, so the Play button is the launcher.
@@ -201,6 +221,18 @@ synapd is not offered: it is SynapseOS-only and speaks over a unix socket that
 does not exist on Windows. Naming a backend explicitly also saves the bridge a
 failed probe on every single request.
 #>
+if ($Backend -ne 'bridge') {
+    Note ''
+    Note "The DLL talks to $Backend directly on port $port -- no bridge to keep running."
+    if ($Backend -eq 'ollama') {
+        Note "Make sure ollama is up and has the model:  ollama pull $Model"
+    }
+    Note ''
+    Note 'Launch the game from Steam as usual.'
+    Note 'In game: Ctrl+F4 mod version, Alt+T Thinker options, Alt+N Planetnet.'
+    exit 0
+}
+
 $bridgePy  = Join-Path $Src 'bridge\chiron-bridge.py'
 $bridgeCmd = Join-Path $Src 'start-bridge.cmd'
 @"
