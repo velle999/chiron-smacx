@@ -1,0 +1,14 @@
+# thinker-chiron/ is its own git repo -- a fork of induktio/thinker carrying
+# full upstream history on branch `chiron`. Committing it here as plain files
+# would flatten that history and break rebasing onto upstream. Keep it separate;
+# make it a submodule if the two ever need to move in lockstep.
+thinker-chiron/
+
+# Bisect artifacts. Binaries, and reproducible from the fork.
+# thinker.dll.* catches the kept-aside control builds, whose suffix is not .dll.
+*.dll
+*.dll.*
+*.exe
+
+__pycache__/
+*.pyc

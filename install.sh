@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Install the Chiron Rising mod pack over an existing SMACX install.
+#
+# Additive and reversible: Thinker never writes to terranx.exe, and anything
+# this overwrites is copied to _vanilla_backup/ first.
+set -euo pipefail
+
+# The apostrophe in "Sid Meier's" cannot live inside a ${VAR:-default}
+# expansion -- bash parses it as an opening quote even within double quotes.
+DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centauri"
+GAME="${GAME:-$DEFAULT_GAME}"
+SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD="$SRC/thinker-chiron/build/release"
+
+if [ ! -f "$GAME/terranx.exe" ]; then
+    echo "error: no terranx.exe in $GAME" >&2
+    echo "set GAME=/path/to/alpha-centauri and retry" >&2
+    exit 1
+fi
+if [ ! -f "$BUILD/thinker.dll" ]; then
+    echo "error: no build found. Run:" >&2
+    echo "  cd $SRC/thinker-chiron && cmake --preset release && cmake --build --preset release" >&2
+    exit 1
+fi
+
+# SMAC's Buffer_copy crashes on dimensions that are not multiples of 8, and the
+# only symptom is "unable to allocate draw buffer, terminating program" -- no
+# log, no hint that the resolution is at fault. Catch it here instead.
+if [ -f "$GAME/thinker.ini" ]; then
+    W=$(sed -n 's/^window_width=\([0-9]*\).*/\1/p'  "$GAME/thinker.ini" | tail -1)
+    H=$(sed -n 's/^window_height=\([0-9]*\).*/\1/p' "$GAME/thinker.ini" | tail -1)
+    for pair in "width:$W" "height:$H"; do
+        name=${pair%%:*}; val=${pair#*:}
+        if [ -n "$val" ] && [ $((val % 8)) -ne 0 ]; then
+            echo "error: thinker.ini window_$name=$val is not a multiple of 8." >&2
+            echo "       The game will die with 'unable to allocate draw buffer'." >&2
+            exit 1
+        fi
+    done
+fi
+
+mkdir -p "$GAME/_vanilla_backup"
+for f in alphax.txt tutor.txt helpx.txt conceptsx.txt "Alpha Centauri.Ini"; do
+    if [ -f "$GAME/$f" ] && [ ! -f "$GAME/_vanilla_backup/$f" ]; then
+        cp -p "$GAME/$f" "$GAME/_vanilla_backup/$f"
+        echo "backed up $f"
+    fi
+done
+
+install -m644 "$BUILD/thinker.dll" "$GAME/thinker.dll"
+install -m755 "$BUILD/thinker.exe" "$GAME/thinker.exe"
+install -m644 "$SRC/chiron.ini"    "$GAME/chiron.ini"
+echo "installed thinker.dll (chiron build), thinker.exe, chiron.ini"
+
+# Redirect one import so Steam's Play button loads the mod without a launcher.
+# Keeps a .vanilla copy; undo with --restore or Steam's file verification.
+python3 "$SRC/patch-imports.py" "$GAME/terranx.exe"
+
+# User service so the bridge is up whenever the game is; without it the mod
+# quietly falls back to the game's original dialogue.
+UNIT="$HOME/.config/systemd/user"
+mkdir -p "$UNIT"
+install -m644 "$SRC/bridge/chiron-bridge.service" "$UNIT/chiron-bridge.service"
+systemctl --user daemon-reload
+systemctl --user enable --now chiron-bridge.service
+echo "chiron-bridge: $(systemctl --user is-active chiron-bridge.service)"
+
+echo
+echo "Launch the game from Steam as usual."
+echo "In game, Ctrl+F4 shows the mod version; Alt+T opens Thinker's options."

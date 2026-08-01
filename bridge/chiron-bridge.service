@@ -1,0 +1,33 @@
+[Unit]
+Description=Chiron Rising LLM diplomacy bridge (HTTP front end for synapd)
+Documentation=https://github.com/velle999/Chiron-Rising
+# synapd.socket activates synapd on demand, so this deliberately does NOT
+# Requires= synapd.service -- see synapd-bridge.service for why pulling the
+# daemon up as a dependency resurrects the model after game mode stops it.
+After=network.target
+
+[Service]
+Type=exec
+ExecStart=%h/chiron-smacx/bridge/chiron-bridge.py --host 127.0.0.1 --port 11436
+Restart=on-failure
+RestartSec=2
+
+# Loopback only, and it just moves bytes between a TCP socket and a unix socket.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=default.target
