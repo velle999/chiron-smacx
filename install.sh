@@ -75,10 +75,14 @@ for d in basenames smac_mod german; do
     fi
 done
 
-# Chiron's own factions. The picker reads the game directory, so a faction is
-# installed by being present -- there is no list to register it in. These add
-# files rather than replacing any, so there is nothing to back up and nothing
-# to restore: uninstalling a faction is deleting its .TXT from the game folder.
+# Chiron's own factions. Copying these in does NOT make them playable: the
+# roster is seven fixed slots read from "Alpha Centauri.Ini" by prefs_fac_load()
+# (config.cpp:1686, when Prefs Format=12), so a new faction has to displace one
+# of the seven by filename. install.sh deliberately does not rewrite that list --
+# which two factions to drop is the user's call, not the installer's.
+#
+# These add files rather than replacing any, so there is nothing to back up:
+# uninstalling a faction is deleting its .TXT from the game folder.
 #
 # The base-name pools go in basenames/ beside the stock ones because Chiron
 # few-shots generated base names from the faction's own list, and a faction
@@ -92,6 +96,12 @@ if [ -d "$SRC/factions" ]; then
     if [ -d "$SRC/factions/basenames" ]; then
         mkdir -p "$GAME/basenames"
         cp -p "$SRC/factions/basenames"/*.txt "$GAME/basenames/" 2>/dev/null || true
+    fi
+    # Portraits live in factions/art/ but must land in the game root beside the
+    # stock <name>.pcx files -- the engine looks them up by faction stem.
+    if [ -d "$SRC/factions/art" ]; then
+        cp -p "$SRC/factions/art"/*.pcx "$GAME/" 2>/dev/null || true
+        echo "installed faction artwork"
     fi
 fi
 

@@ -1,8 +1,30 @@
 # Chiron factions
 
 Two new playable factions for SMACX. `install.sh` copies them into the game
-folder; the faction picker reads the directory, so **a faction is installed by
-being present** — there is no list to register it in.
+folder — but **copying them in is not enough to see them.**
+
+## The roster is seven fixed slots in the ini
+
+There is no directory scan. `prefs_fac_load()` (`src/config.cpp:1686`) reads
+`Alpha Centauri.Ini` when `Prefs Format=12` and loops `Faction 1` … `Faction 7`,
+taking each faction's *filename* from the ini:
+
+```ini
+[Alpha Centauri]
+Prefs Format=12
+Faction 1=CYBORG
+Faction 2=PIRATES
+...
+Faction 7=USURPER
+```
+
+`MaxPlayerNum` is 8, so there are exactly seven slots and **a new faction has to
+displace one.** Installing the files and expecting them to appear is the failure
+mode this note exists to prevent — nothing errors, the picker simply shows the
+seven factions the ini names.
+
+To use these, edit two of those lines to `SUFFIC` and `ORACLE`. The vanilla ini
+is preserved in `_vanilla_backup/`.
 
 ```
 SUFFIC.TXT            Kaya's Sufficiency  — the degrowth argument
