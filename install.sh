@@ -76,9 +76,16 @@ for d in basenames smac_mod german; do
 done
 
 install -m644 "$BUILD/thinker.dll" "$GAME/thinker.dll"
-install -m755 "$BUILD/thinker.exe" "$GAME/thinker.exe"
 install -m644 "$SRC/chiron.ini"    "$GAME/chiron.ini"
-echo "installed thinker.dll (chiron build), thinker.exe, chiron.ini"
+# The launcher is optional and usually absent: thinker.exe does not link here
+# (launch.cpp wants _imp___vsnprintf, which no msvcrt-os library on this box
+# provides), and nothing needs it -- patch-imports.py below makes terranx.exe
+# load the DLL by itself, so Steam's Play button is the launcher. Copy it when a
+# build happens to have one, but never fail the install over it.
+if [ -f "$BUILD/thinker.exe" ]; then
+    install -m755 "$BUILD/thinker.exe" "$GAME/thinker.exe"
+fi
+echo "installed thinker.dll (chiron build), chiron.ini"
 
 # Redirect one import so Steam's Play button loads the mod without a launcher.
 # Keeps a .vanilla copy; undo with --restore or Steam's file verification.
