@@ -103,6 +103,16 @@ if [ -d "$SRC/factions" ]; then
         cp -p "$SRC/factions/art"/*.pcx "$GAME/" 2>/dev/null || true
         echo "installed faction artwork"
     fi
+    # THIS is what puts a faction in the startup list. alphax.txt's
+    # #CUSTOMFACTIONS block is the engine's own mechanism for it ("factions you
+    # want included in the startup list"), and it is additive -- the original
+    # seven and the expansion seven are untouched.
+    #
+    # Must run AFTER alphax.txt is installed above, because Thinker ships its
+    # own copy and installing it wipes the block. Deriving the list from the
+    # files present means adding a faction registers it.
+    python3 "$SRC/factions/register.py" \
+        --alphax "$GAME/alphax.txt" --factions "$SRC/factions"
 fi
 
 install -m644 "$BUILD/thinker.dll" "$GAME/thinker.dll"
