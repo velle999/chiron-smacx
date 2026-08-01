@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 """
-chiron-bridge — HTTP front end for synapd, for the Chiron Rising SMACX mod.
+chiron-bridge — local LLM front end for the Chiron Rising SMACX mod.
 
-The mod's DLL runs inside Wine and can only speak plain TCP/HTTP. synapd speaks
-a binary framed protocol over a unix socket. This bridges the two.
+The mod's DLL runs inside Wine and can only speak plain TCP/HTTP. This bridges
+that to whichever local model host is actually running.
 
     POST /generate   {"prompt": "...", "max_tokens": 400}  ->  {"text": "..."}
-    GET  /health                                           ->  {"ok": true}
+    GET  /health                                           ->  {"ok": true, ...}
+
+Three backends, tried in this order unless --backend names one:
+
+    synapd    a binary framed protocol over a unix socket (SynapseOS)
+    llamacpp  llama.cpp's llama-server, OpenAI-style, default :8080
+    ollama    default :11434
+
+synapd is first because it is the one host here that a game going fullscreen can
+stop and that we know how to restart. The other two need nothing but a listening
+port, which is what makes the mod runnable off a SynapseOS box.
 
 Bound to 127.0.0.1 only. synapd's wire protocol has no authentication, so this
 must never listen on a routable address -- see synapd-bridge.socket for the
@@ -23,6 +33,8 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # ── synapd wire protocol (mirrors SYNAPSE/synapd/include/synapd.h) ──────────
@@ -36,6 +48,13 @@ SYN_QF_RAW = 0x8000                 # bypass the built-in Synapse persona
 SYN_QF_TOKENS_MASK = 0x7FFF
 
 DEFAULT_SOCKET = "/run/synapd/synapd.sock"
+DEFAULT_LLAMACPP = "http://127.0.0.1:8080"
+DEFAULT_OLLAMA = "http://127.0.0.1:11434"
+
+# Leaders repeating themselves verbatim is the thing this mod exists to fix, so
+# sampling has to be warm enough that the same label twice reads differently.
+# synapd picks its own; these two take it from us.
+DEFAULT_TEMPERATURE = 0.8
 
 
 # Set once the sandbox proves it will not let us escalate; see wake_synapd().
@@ -141,6 +160,142 @@ def synapd_query(prompt, max_tokens=400, socket_path=DEFAULT_SOCKET, timeout=120
         s.close()
 
 
+# ── llama.cpp and ollama ───────────────────────────────────────────────────
+class BackendError(RuntimeError):
+    pass
+
+
+def _post_json(url, payload, timeout):
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def _get_json(url, timeout):
+    with urllib.request.urlopen(url, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def llamacpp_query(prompt, max_tokens, base, timeout, temperature):
+    """
+    llama-server's OpenAI-compatible endpoint.
+
+    The prompt is already a complete instruction built by the DLL, so it goes in
+    as a single user message and the server's chat template wraps it. A
+    llama-server built without a template still answers here; /completion is the
+    fallback for the older builds that do not carry /v1 at all.
+    """
+    body = {
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "stream": False,
+    }
+    try:
+        out = _post_json(base.rstrip("/") + "/v1/chat/completions", body, timeout)
+        return out["choices"][0]["message"]["content"].strip()
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            raise
+    out = _post_json(base.rstrip("/") + "/completion",
+                     {"prompt": prompt, "n_predict": max_tokens,
+                      "temperature": temperature, "stream": False}, timeout)
+    return out["content"].strip()
+
+
+def ollama_pick_model(base, timeout=5.0):
+    """Whatever is pulled. Asking beats making the user name a model."""
+    tags = _get_json(base.rstrip("/") + "/api/tags", timeout).get("models") or []
+    if not tags:
+        raise BackendError("ollama has no models pulled")
+    return tags[0]["name"]
+
+
+def ollama_query(prompt, max_tokens, base, timeout, temperature, model=None):
+    if not model:
+        model = ollama_pick_model(base)
+    out = _post_json(base.rstrip("/") + "/api/generate",
+                     {"model": model, "prompt": prompt, "stream": False,
+                      "options": {"num_predict": max_tokens,
+                                  "temperature": temperature}}, timeout)
+    return (out.get("response") or "").strip()
+
+
+def probe_synapd(socket_path, timeout=2.0):
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.settimeout(timeout)
+    try:
+        s.connect(socket_path)
+    finally:
+        s.close()
+
+
+def probe_http(base, timeout=2.0):
+    host, _, port = base.split("//", 1)[1].partition(":")
+    s = socket.create_connection((host, int(port or 80)), timeout)
+    s.close()
+
+
+def generate(srv, prompt, max_tokens):
+    """
+    Walk the backend chain and return (text, backend_name).
+
+    Each backend is tried in turn and the last error is kept, so a box with none
+    of them running gets one message naming all three rather than whichever
+    happened to be first. synapd gets the extra restart-and-retry because it is
+    the only one that stops on its own -- a desktop that frees the GPU for games
+    kills it exactly when the game needs it.
+    """
+    errors = []
+
+    # Cheap probe first, so a backend that is not installed costs a refused
+    # connection rather than a request timeout.
+    up = {}
+    for name in srv.chain:
+        try:
+            if name == "synapd":
+                probe_synapd(srv.socket_path)
+            elif name == "llamacpp":
+                probe_http(srv.llamacpp_url)
+            elif name == "ollama":
+                probe_http(srv.ollama_url)
+            up[name] = True
+        except Exception as e:
+            up[name] = False
+            errors.append(f"{name}: {e}")
+
+    for name in srv.chain:
+        if not up.get(name):
+            continue
+        try:
+            if name == "synapd":
+                return synapd_query(prompt, max_tokens,
+                                    srv.socket_path, srv.timeout), name
+            if name == "llamacpp":
+                return llamacpp_query(prompt, max_tokens, srv.llamacpp_url,
+                                      srv.timeout, srv.temperature), name
+            if name == "ollama":
+                return ollama_query(prompt, max_tokens, srv.ollama_url,
+                                    srv.timeout, srv.temperature,
+                                    srv.ollama_model), name
+        except Exception as e:
+            errors.append(f"{name}: {e}")
+
+    # Only now, with nothing answering, is it worth the ~25s of starting synapd.
+    # Doing that first cost 25 seconds per line on any box that simply does not
+    # have synapd, which is every box the fallbacks exist for.
+    if "synapd" in srv.chain and wake_synapd(srv.socket_path):
+        try:
+            return synapd_query(prompt, max_tokens,
+                                srv.socket_path, srv.timeout), "synapd"
+        except Exception as e:
+            errors.append(f"synapd after start: {e}")
+
+    raise BackendError("; ".join(errors) or "no backends configured")
+
+
 # ── HTTP surface ───────────────────────────────────────────────────────────
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -160,14 +315,27 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.rstrip("/") in ("/health", ""):
-            try:
-                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                s.settimeout(5.0)
-                s.connect(self.server.socket_path)
-                s.close()
-                self._send(200, {"ok": True, "backend": self.server.socket_path})
-            except OSError as e:
-                self._send(503, {"ok": False, "error": str(e)})
+            # Report every backend, not just the first reachable one -- "which
+            # of these is actually up" is the question worth answering here.
+            found = {}
+            for name in self.server.chain:
+                try:
+                    if name == "synapd":
+                        probe_synapd(self.server.socket_path)
+                        found[name] = self.server.socket_path
+                    elif name == "llamacpp":
+                        probe_http(self.server.llamacpp_url)
+                        found[name] = self.server.llamacpp_url
+                    elif name == "ollama":
+                        probe_http(self.server.ollama_url)
+                        found[name] = self.server.ollama_url
+                except Exception as e:
+                    found[name] = f"down ({e})"
+            live = [n for n in self.server.chain
+                    if not str(found[n]).startswith("down")]
+            self._send(200 if live else 503,
+                       {"ok": bool(live), "using": live[0] if live else None,
+                        "backends": found})
         else:
             self._send(404, {"error": "not found"})
 
@@ -192,26 +360,16 @@ class Handler(BaseHTTPRequestHandler):
         max_tokens = int(req.get("max_tokens", 400))
         t0 = time.time()
         try:
-            text = synapd_query(prompt, max_tokens,
-                                self.server.socket_path, self.server.timeout)
+            text, backend = generate(self.server, prompt, max_tokens)
         except Exception as e:
-            # A desktop that frees the GPU for games stops synapd the moment the
-            # game goes fullscreen, which is precisely when this bridge is
-            # needed. Bring it back and retry once rather than handing the mod a
-            # 502 and letting it fall back to vanilla for the whole session.
-            if not wake_synapd(self.server.socket_path):
-                self._send(502, {"error": str(e)})
-                return
-            try:
-                text = synapd_query(prompt, max_tokens,
-                                    self.server.socket_path, self.server.timeout)
-            except Exception as e2:
-                self._send(502, {"error": str(e2)})
-                return
+            self._send(502, {"error": str(e)})
+            return
         dt = time.time() - t0
         if self.server.verbose:
-            sys.stderr.write(f"[bridge] generated {len(text)} chars in {dt:.1f}s\n")
-        self._send(200, {"text": text, "elapsed": round(dt, 2)})
+            sys.stderr.write(
+                f"[bridge] {backend}: {len(text)} chars in {dt:.1f}s\n")
+        self._send(200, {"text": text, "elapsed": round(dt, 2),
+                         "backend": backend})
 
 
 def main():
@@ -221,6 +379,14 @@ def main():
     ap.add_argument("--port", type=int, default=11436)
     ap.add_argument("--socket", default=DEFAULT_SOCKET, dest="socket_path")
     ap.add_argument("--timeout", type=float, default=120.0)
+    ap.add_argument("--backend", default="auto",
+                    choices=("auto", "synapd", "llamacpp", "ollama"),
+                    help="auto tries synapd, then llamacpp, then ollama")
+    ap.add_argument("--llamacpp-url", default=DEFAULT_LLAMACPP)
+    ap.add_argument("--ollama-url", default=DEFAULT_OLLAMA)
+    ap.add_argument("--ollama-model", default=None,
+                    help="default: whatever ollama lists first")
+    ap.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -235,8 +401,15 @@ def main():
     srv.socket_path = args.socket_path
     srv.timeout = args.timeout
     srv.verbose = args.verbose
+    srv.chain = (["synapd", "llamacpp", "ollama"] if args.backend == "auto"
+                 else [args.backend])
+    srv.llamacpp_url = args.llamacpp_url
+    srv.ollama_url = args.ollama_url
+    srv.ollama_model = args.ollama_model
+    srv.temperature = args.temperature
 
-    print(f"chiron-bridge on http://{args.host}:{args.port} -> {args.socket_path}")
+    print(f"chiron-bridge on http://{args.host}:{args.port} "
+          f"-> {' then '.join(srv.chain)}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
