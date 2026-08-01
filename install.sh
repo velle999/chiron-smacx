@@ -44,10 +44,34 @@ if [ -f "$GAME/thinker.ini" ]; then
 fi
 
 mkdir -p "$GAME/_vanilla_backup"
-for f in alphax.txt tutor.txt helpx.txt conceptsx.txt "Alpha Centauri.Ini"; do
+for f in alphax.txt tutor.txt helpx.txt conceptsx.txt modmenu.txt "Alpha Centauri.Ini"; do
     if [ -f "$GAME/$f" ] && [ ! -f "$GAME/_vanilla_backup/$f" ]; then
         cp -p "$GAME/$f" "$GAME/_vanilla_backup/$f"
         echo "backed up $f"
+    fi
+done
+
+# Thinker's data files are part of the build, not optional extras. The DLL asks
+# modmenu.txt for labels by name, and a version that predates the code silently
+# has none of them -- game.cpp:591 requests #TOPMENU while building the opening
+# menu, and on a v5.4 modmenu.txt that lookup fails right where the splash is
+# drawn. It surfaces as "Unable to allocate draw-buffer; terminating program",
+# with nothing pointing at a text file.
+#
+# Upstream ships these in the release zip for exactly this reason. thinker.ini
+# is deliberately NOT overwritten: it holds the user's video settings, and new
+# options fall back to their defaults when absent.
+DOCS="$SRC/thinker-chiron/docs"
+for f in modmenu.txt alphax.txt; do
+    if [ -f "$DOCS/$f" ]; then
+        install -m644 "$DOCS/$f" "$GAME/$f"
+        echo "installed $f (Thinker's, matching the DLL)"
+    fi
+done
+for d in basenames smac_mod german; do
+    if [ -d "$DOCS/$d" ]; then
+        mkdir -p "$GAME/$d"
+        cp -p "$DOCS/$d"/*.txt "$GAME/$d/" 2>/dev/null || true
     fi
 done
 
