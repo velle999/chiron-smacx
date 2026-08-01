@@ -34,13 +34,10 @@ if you are building rather than unpacking a release — an **msvcrt** compiler f
 > so nothing in the mod itself is Linux-only. This pack is developed and tested
 > on **Linux with Steam/Proton**, which is the path the instructions describe.
 >
-> Windows should work and is **untested**: the DLL is native there, the bridge
-> is pure-stdlib Python, and `patch-imports.py` is portable. Two pieces of the
-> install are not — `install.sh` is bash (use WSL or Git Bash, or copy the files
-> and run `patch-imports.py` yourself), and the bridge's systemd user unit has
-> no equivalent, so start `bridge/chiron-bridge.py` however you normally would.
-> If you try it, the objdump check under [From source](#from-source) is still
-> the one that matters.
+> Windows should work: the DLL is native there, the bridge is pure-stdlib
+> Python, and `patch-imports.py` is portable. There is an
+> [`install.ps1`](#windows) for it — **written but never run on Windows**, so
+> treat it as a starting point rather than a finished path.
 
 ```bash
 # 1. get both repos
@@ -364,6 +361,44 @@ that holds your video settings.
 Then launch from Steam normally. `Ctrl+F4` shows the mod version; `Alt+T` opens
 Thinker's options. If neither shows the mod, it did not load.
 
+### Windows
+
+> **Untested.** `install.ps1` is written from the Linux installer and the game's
+> file layout, but has never been run on Windows — development happens on Linux
+> with Steam/Proton. It carries the same guards and the same reversibility, and
+> if it goes wrong everything it touched is in `_vanilla_backup\` and
+> `terranx.exe.vanilla`. Reports welcome.
+
+Needs Python on `PATH` (for the import patch and the bridge) and a release zip
+unpacked here, or a DLL you built.
+
+```powershell
+# from the chiron-smacx folder, in PowerShell
+.\install.ps1                                   # finds Steam/GOG automatically
+.\install.ps1 -Game "D:\Games\Alpha Centauri"   # or point it yourself
+.\install.ps1 -Backend ollama -InstallBridgeTask
+.\install.ps1 -Restore                          # undo everything
+```
+
+Two things differ from the Linux install, both because of the platform rather
+than the mod:
+
+- **No systemd**, so the bridge does not become a service. The script writes
+  `start-bridge.cmd` — run it before you play, or pass `-InstallBridgeTask` to
+  register a Scheduled Task that starts it at logon. With the bridge down the
+  mod silently shows the game's original dialogue.
+- **No synapd.** It is SynapseOS-only and speaks over a unix socket that does
+  not exist on Windows, so `-Backend` picks `llamacpp` (default) or `ollama`.
+  Naming one also saves the bridge a failed probe on every request.
+
+Check the bridge is answering with `curl http://127.0.0.1:11436/health`.
+
+If you are building rather than unpacking a release, the compiler rule under
+[From source](#from-source) is unchanged and is still the thing that bites:
+**msvcrt, not UCRT**. A native MinGW-w64 msvcrt toolchain is the equivalent of
+the cross-compiler described there, and the `objdump -p` import check is the
+only real verification.
+
 ### Display
 
 `thinker.ini` in the game folder:
@@ -636,6 +671,7 @@ block that every shipped speech block uses.
 | `chiron.ini` | Runtime config, installed into the game folder |
 | `patch-imports.py` | Import-table redirect, with `--restore` |
 | `install.sh` | Build output → game folder, bridge service, import patch |
+| `install.ps1` | The same on Windows, plus `-Restore`. Written, never run there |
 
 ## Credits
 
