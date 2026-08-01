@@ -175,20 +175,66 @@ def to_pcx(im, size, path):
     return path
 
 
+def donor_atlas(game, donor, key, outdir):
+    """Copy a stock faction's <name>.pcx and .flc.
+
+    <faction>.pcx is NOT a portrait -- it is the faction's sprite ATLAS. Open
+    Gaians.pcx and it is labelled in the image itself: LAND BASES, SEA BASES,
+    WATER BASES, leader thumbnails, the insignia at several sizes, and colour
+    swatches for Faction Color / Faction Text Color / Border Color / Vehicle
+    Color, all over a magenta transparency key.
+
+    Writing flat art into that slot gives a faction whose bases render as
+    nothing at all, which is exactly what happened. Every region has to be
+    where the engine expects it, so a new faction starts from a stock atlas
+    and gets repainted -- it cannot be drawn from scratch without the map.
+
+    The donor also decides the faction's in-game COLOUR, so pick one that is
+    not in the active roster or two factions will share a colour.
+    """
+    import shutil
+    made = []
+    for src_name, dst_name in ((f"{donor}.pcx", f"{key}.pcx"),
+                               (f"{donor}.flc", f"{key}.flc")):
+        src = None
+        for cand in os.listdir(game):  # the shipped files vary in case
+            if cand.lower() == src_name.lower():
+                src = os.path.join(game, cand)
+                break
+        if not src:
+            print(f"  donor has no {src_name}, skipping", file=sys.stderr)
+            continue
+        dst = os.path.join(outdir, dst_name)
+        shutil.copy2(src, dst)
+        made.append(dst)
+    return made
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("faction", help="file stem, lowercase (suffic, oracle)")
     ap.add_argument("--from", dest="src", help="source image to palettise")
+    ap.add_argument("--donor", help="stock faction whose sprite atlas and "
+                                    "animation to inherit (e.g. GAIANS)")
+    ap.add_argument("--game", default=os.path.expanduser(
+        "~/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centauri"))
     ap.add_argument("--install", help="also copy into this game directory")
     ap.add_argument("--outdir", default=os.path.dirname(os.path.abspath(__file__)))
     args = ap.parse_args()
 
     key = args.faction.lower()
-    if not args.src and key not in THEMES:
-        sys.exit(f"no emblem theme for {key!r}; pass --from IMAGE")
+    if not args.src and not args.donor and key not in THEMES:
+        sys.exit(f"no emblem theme for {key!r}; pass --from IMAGE or --donor")
 
     made = []
+    if args.donor:
+        made += donor_atlas(args.game, args.donor, key, args.outdir)
+
     for suffix, size in SIZES.items():
+        # The atlas slot is the donor's when one is given: it carries the base
+        # sprites and the colour key, and cannot be replaced by a picture.
+        if args.donor and suffix == "":
+            continue
         base = Image.open(args.src) if args.src else emblem(THEMES[key], size)
         name = f"{key}{suffix}.pcx"
         made.append(to_pcx(base, size, os.path.join(args.outdir, name)))

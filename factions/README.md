@@ -88,12 +88,57 @@ It compares against `GAIANS.TXT` in the installed game (override with `GAME=`),
 and it passes on `PEACE.TXT`, `angels.txt` and `hive.txt` — so a pass means
 something.
 
+## `<faction>.pcx` is a SPRITE ATLAS, not a portrait
+
+This one cost a play session. Open `Gaians.pcx` and it is labelled inside the
+image: **LAND BASES, SEA BASES, WATER BASES**, leader thumbnails, the insignia
+at several sizes, and colour swatches for `Faction Color`, `Faction Text
+Color`, `Border Color` and `Vehicle Color`, all over a magenta transparency
+key. Every region has to sit where the engine expects it.
+
+Writing flat art into that slot produces a faction whose **bases render as
+nothing at all** — no error, the tiles are simply empty.
+
+So a new faction inherits a stock atlas and gets repainted; it cannot be drawn
+from scratch without the region map:
+
+```sh
+art/make_art.py suffic --donor GAIANS   # atlas + .flc
+art/make_art.py oracle --donor UNIV
+```
+
+**The donor also sets the faction's in-game colour**, so pick one that is not
+in the active roster or two factions share a colour. `2.pcx` and `3.pcx` are
+ordinary art and stay ours.
+
+| File | What it is |
+|---|---|
+| `<stem>.pcx` | **sprite atlas** — bases, thumbnails, insignia, colour key |
+| `<stem>2.pcx` | 200×120 small portrait |
+| `<stem>3.pcx` | 1024×768 insignia / lineup art |
+| `<stem>.flc` | leader animation |
+| `voices/<stem>.mp3` | the pick-screen speech |
+
+## Voices
+
+The stock factions read their blurb aloud when you pick them; custom factions
+never have (BRIAN and SID, the base game's own hidden factions, ship no mp3).
+The filename is keyed on the stem, so supplying the file is all it takes.
+
+```sh
+voice/make_voice.py suffic --factions .. --install "$GAME"
+```
+
+Text comes from the faction file's own `#BLURB` — the same passage the stock
+voices read — with the `^` attribution lines dropped. Piper lives inside the
+`chibi` package rather than on PATH, and there is one installed voice, so the
+two leaders are separated by pitch and tempo rather than by model. Output is
+mp3 / 22050 Hz / mono / 64 kbps, matching every shipped file exactly.
+
 ## Not done
 
-- **No artwork.** A faction wants `<name>.pcx` (1024×768 leader portrait),
-  `<name>2.pcx` (200×120), `<name>3.pcx` (1024×768) and optionally `.flc` and
-  `voices/<name>.mp3`. Untested how the game behaves with these absent.
 - **`VOTES, 0` is unverified.** Zero may read as "no votes" or as "unset". If
   the Council misbehaves, `VOTES, 1` is the safe fallback and costs only
   flavour.
-- Neither faction has been loaded in-game.
+- The atlases are donor art. Bases, units and colours are Gaian and University
+  until someone repaints the regions.

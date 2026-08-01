@@ -101,7 +101,16 @@ if [ -d "$SRC/factions" ]; then
     # stock <name>.pcx files -- the engine looks them up by faction stem.
     if [ -d "$SRC/factions/art" ]; then
         cp -p "$SRC/factions/art"/*.pcx "$GAME/" 2>/dev/null || true
+        cp -p "$SRC/factions/art"/*.flc "$GAME/" 2>/dev/null || true
         echo "installed faction artwork"
+    fi
+    # The leader's speech on the pick screen. Generated ahead of time by
+    # voice/make_voice.py rather than here: piper lives inside the chibi
+    # package and this only needs the finished mp3.
+    if [ -d "$SRC/factions/voice" ] && ls "$SRC/factions/voice"/*.mp3 >/dev/null 2>&1; then
+        mkdir -p "$GAME/voices"
+        cp -p "$SRC/factions/voice"/*.mp3 "$GAME/voices/"
+        echo "installed faction voices"
     fi
     # THIS is what puts a faction in the startup list. alphax.txt's
     # #CUSTOMFACTIONS block is the engine's own mechanism for it ("factions you
