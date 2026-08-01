@@ -1,0 +1,70 @@
+#BASES
+Kaya's Table
+The Sufficient Hearth
+Common Measure
+Long Table
+The Modest Yield
+Quiet Harvest
+Threshold
+The Kept Portion
+Small Mercies
+Fallow Ground
+The Even Share
+Contentment
+Barley Commons
+The Low Wall
+Held in Trust
+Sparing Hand
+The Full Bowl
+Measure Twice
+Winter Store
+The Unhurried
+Sabbath Field
+Kaya's Refusal
+The Last Increment
+Plenty Withheld
+Ample Rest
+Enough
+The Careful Acre
+Bread and Salt
+Slow Orchard
+The Standing Grain
+Almeida's Table
+Temperance
+The Quiet Ledger
+Husbandry
+The Shared Roof
+Lean Season
+The Second Helping
+Grace Before
+Rest Day
+The Mended Thing
+Seed Kept Back
+Frugal Light
+The Level Cup
+Abundance Refused
+Threshing Floor
+The Common Pot
+Small Fire
+Wintering
+The Given Loaf
+Sufficient Unto
+#END
+
+#WATERBASES
+Shoal Commons
+The Sparing Sea
+Tidal Portion
+Quiet Anchorage
+The Shared Catch
+Salt Measure
+Still Water
+Fathom Enough
+The Modest Haul
+Netmender's Rest
+Low Tide Table
+The Kept Shoal
+Brine and Bread
+The Even Draught
+Harbour Enough
+#END

@@ -1,0 +1,136 @@
+;
+; Sid Meier's ALPHA CENTAURI
+;
+; FACTION FILE: The Cassandra Directorate
+;
+; A Chiron Rising faction. Drop this file in the game directory alongside
+; the stock faction files; the faction picker reads the directory.
+;
+; THE ARGUMENT: every other faction believes something. The Directorate
+; calculates, publishes, and is proved right, and this has cost it every
+; friend it ever had. It is not the probe faction — the Data Angels steal
+; what is hidden. The Directorate is told nothing and knows anyway, which
+; the others find harder to forgive than theft.
+;
+; MECHANICALLY: it cannot win a war (--MORALE) and it cannot win a Council
+; vote (VOTES, 0). It opens the game already talking to a faction it should
+; not have met yet. Everything it has, it has by knowing first.
+;
+; NOTE ON `VOTES, 0`: Peacekeepers ship `VOTES, 2`, so the multiplier is
+; live; zero is untested and is the one value in this file that needs an
+; in-game check. If the Council behaves oddly, `VOTES, 1` is the safe
+; fallback and costs only the flavour, not the design.
+;
+
+#ORACLE
+The Cassandra Directorate, The Oracle, Directorate, F, 1, Ravn, F, 0, 0, 1, 1, 0,
+  TECH, InfNet, COMMFREQ, 0, SOCIAL, +PROBE, SOCIAL, +RESEARCH, SOCIAL, --MORALE, VOTES, 0
+  Values, Knowledge, PROBE
+  Politics, Fundamentalist, nil
+  Cassandran, Ravn,
+  Sorel, Idris, Sorel's Margin
+  Actuary, precise, insufferable, clear-eyed, cold,
+  Bloodless Statistician
+  act on what is true rather than what is comfortable
+  to publish what is coming, whether or not anyone thanks me for it
+  claiming to have foreseen every misfortune that befalls the rest of us
+  claiming to have foreseen every misfortune that befalls the rest of us
+  turn every disaster into evidence that we should have listened to you
+  filing reports no one asked for
+  filing reports no one asked for
+  saying I told you so before it has even happened
+  unwanted forecasts, M2
+  contingency estimates, M2
+  probability rituals, M2
+  subscription, M1
+  telling this world what it is about to do to itself
+  my Directorate of Standing Estimates
+  the Schedule of Foreseeable Harm
+
+#BASES
+Cassandra Station
+The Long Estimate
+Ravn's Ledger
+Priors
+The Standing Forecast
+Actuary's Rest
+Certainty
+The Quiet Archive
+Confidence Interval
+The Told Truth
+Unheeded
+Margin of Error
+The Sealed Report
+Foreknowledge
+Signal Ridge
+The Whispering Gallery
+Probability One
+Cassandra's Answer
+The Filed Warning
+Datum
+The Known Quantity
+Prophecy Refused
+Second Sight
+Blackwater Index
+The Last Prediction
+Sorel's Margin
+#END
+
+#WATERBASES
+Sounding Depth
+The Deep Index
+Sonar Commons
+Abyssal Datum
+The Silent Return
+Fathom Point
+Hydrophone
+The Listening Sea
+#END
+
+#BLURB
+I have never once been wrong about this world, and I have never once been
+believed in time. I have stopped regarding these as separate problems.
+The forecast is not a favour I do you. It is a record I keep, so that
+afterward there is no argument about what was known, and when.
+^
+^        -- Actuary Ilse Ravn,
+^           "The Schedule of Foreseeable Harm"
+
+#DATALINKS1
+^LEADER: {Ilse Ravn}
+^BACKGROUND: {Unity Mission Risk Assessment, Director}
+^AGENDA: {Knowledge; espionage}
+^TECH: {Information Networks}
+^
+
+#DATALINKS2
+^+1 PROBE: {Knows what you are doing before you finish doing it}
+^+1 RESEARCH: {Nothing is discovered twice}
+^-2 MORALE: {Cannot be made to believe a war is worth it}
+^No votes in the Planetary Council: {Trusted by no one}
+^Begins with an extra commlink
+
+#FACTIONTRUCE
+#xs 440
+#caption $CAPTION7
+"I calculated the cost of this war on the day it began, $TITLE0
+$NAME1, and you have now exceeded it by a factor of four. I am
+not asking you to like me. I am asking you to read the figure.
+Blood Truce."
+
+"Show me the figure. If it is honest, we stop."
+"Your arithmetic has never once made me put down a weapon, $NAME3."
+
+#FACTIONTREATY
+#xs 440
+#caption $CAPTION7
+"You are the only leader on this world who has acted on a warning
+of mine rather than resenting it. A Treaty of Friendship, then.
+I will tell you what is coming. What you do about it remains
+entirely your affair."
+
+"Then tell me, and I will decide for myself."
+"I have heard what happens to those who take your counsel."
+
+
+# ; This line must remain at end of file

@@ -1,0 +1,70 @@
+#BASES
+Cassandra Station
+The Long Estimate
+Ravn's Ledger
+Priors
+The Standing Forecast
+Actuary's Rest
+Certainty
+The Quiet Archive
+Confidence Interval
+The Told Truth
+Unheeded
+Margin of Error
+The Sealed Report
+Foreknowledge
+Signal Ridge
+The Whispering Gallery
+Probability One
+Cassandra's Answer
+The Filed Warning
+Datum
+The Known Quantity
+Prophecy Refused
+Second Sight
+Blackwater Index
+The Last Prediction
+Sorel's Margin
+The Open Secret
+Forewarned
+Index Point
+The Cold Read
+Certainty Ridge
+Told You Twice
+The Long Memory
+Advance Notice
+The Unread Letter
+Hindsight
+Coming Event
+The Quiet Correction
+Estimate Nine
+Watchful
+The Plain Figure
+Foregone
+Signal to Noise
+The Standing Warning
+Anticipation
+Read Receipt
+The Sure Thing
+Tomorrow Filed
+The Answer Given
+Well Advised
+#END
+
+#WATERBASES
+Sounding Depth
+The Deep Index
+Sonar Commons
+Abyssal Datum
+The Silent Return
+Fathom Point
+Hydrophone
+The Listening Sea
+Deep Estimate
+The Cold Current
+Sounding Station
+Trench Datum
+The Quiet Depth
+Pressure Reading
+Undertow Index
+#END

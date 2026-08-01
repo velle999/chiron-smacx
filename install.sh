@@ -75,6 +75,26 @@ for d in basenames smac_mod german; do
     fi
 done
 
+# Chiron's own factions. The picker reads the game directory, so a faction is
+# installed by being present -- there is no list to register it in. These add
+# files rather than replacing any, so there is nothing to back up and nothing
+# to restore: uninstalling a faction is deleting its .TXT from the game folder.
+#
+# The base-name pools go in basenames/ beside the stock ones because Chiron
+# few-shots generated base names from the faction's own list, and a faction
+# with no list there gets welded-together slogans instead of names.
+if [ -d "$SRC/factions" ]; then
+    for f in "$SRC/factions"/*.TXT; do
+        [ -f "$f" ] || continue
+        install -m644 "$f" "$GAME/$(basename "$f")"
+        echo "installed faction $(basename "$f")"
+    done
+    if [ -d "$SRC/factions/basenames" ]; then
+        mkdir -p "$GAME/basenames"
+        cp -p "$SRC/factions/basenames"/*.txt "$GAME/basenames/" 2>/dev/null || true
+    fi
+fi
+
 install -m644 "$BUILD/thinker.dll" "$GAME/thinker.dll"
 install -m644 "$SRC/chiron.ini"    "$GAME/chiron.ini"
 # The launcher is optional and usually absent: thinker.exe does not link here

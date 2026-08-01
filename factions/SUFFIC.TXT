@@ -1,0 +1,130 @@
+;
+; Sid Meier's ALPHA CENTAURI
+;
+; FACTION FILE: Kaya's Sufficiency
+;
+; A Chiron Rising faction. Drop this file in the game directory alongside
+; the stock faction files; the faction picker reads the directory.
+;
+; THE ARGUMENT: Earth did not die of cruelty. It died of growth. Every other
+; faction on Planet is arguing about who should hold the throttle. The
+; Sufficiency argues that the throttle is the problem, and that a people who
+; have already decided what enough is cannot be bribed, starved, or hurried.
+;
+; MECHANICALLY: the only faction that can run Eudaimonic without paying for
+; it. Poor by choice, slow to build, wastes nothing, and its people are
+; content by construction. Its endgame costs it nothing and costs everyone
+; else their army.
+;
+
+#SUFFIC
+Kaya's Sufficiency, The Satisfied, Sufficiency, F, 1, Kaya, F, -1, 0, 0, 0, 1,
+  TECH, Psych, IMPUNITY, Eudaimonic, PENALTY, Free Market, SOCIAL, --ECONOMY, SOCIAL, -INDUSTRY, SOCIAL, ++EFFIC, TALENT, 5
+  Future Society, Eudaimonic, GROWTH
+  Values, Wealth, nil
+  Sufficient, Kaya,
+  Almeida, Rutger, Almeida's Table
+  Convener, unhurried, self-denying, contented, smug,
+  Sanctimonious Ascetic
+  take only what we need from this world
+  to prove that a people can choose its own ceiling and be happy beneath it
+  starving her own people to make a point about appetite
+  starving your own people to make a point about appetite
+  dress up your poverty as a philosophy and call it wisdom
+  counting grain and calling it a civilization
+  counting grain and calling it a civilization
+  preaching thrift at people with nothing left to spare
+  thrift sermons, M2
+  restraint programs, M2
+  rationing rituals, M2
+  voluntary tithe, M1
+  keeping the accounts of what this world can spare
+  my Conveners of the Common Measure
+  the Compact of Enough
+
+#BASES
+Kaya's Table
+The Sufficient Hearth
+Common Measure
+Long Table
+The Modest Yield
+Quiet Harvest
+Threshold
+The Kept Portion
+Small Mercies
+Fallow Ground
+The Even Share
+Contentment
+Barley Commons
+The Low Wall
+Held in Trust
+Sparing Hand
+The Full Bowl
+Measure Twice
+Winter Store
+The Unhurried
+Sabbath Field
+Kaya's Refusal
+The Last Increment
+Plenty Withheld
+Ample Rest
+Enough
+#END
+
+#WATERBASES
+Shoal Commons
+The Sparing Sea
+Tidal Portion
+Quiet Anchorage
+The Shared Catch
+Salt Measure
+Still Water
+Fathom Enough
+#END
+
+#BLURB
+They ask me what we will do when we have taken everything Planet has to
+give. It is the wrong question, and it is the question that killed Earth.
+Ask instead: what is the least we can take and still be glad? Answer that
+honestly, once, and you never have to answer it again.
+^
+^        -- Convener Ines Kaya,
+^           "The Compact of Enough"
+
+#DATALINKS1
+^LEADER: {Ines Kaya}
+^BACKGROUND: {Unity Resource Allocation, Chief Actuary}
+^AGENDA: {Eudaimonic Sufficiency}
+^TECH: {Social Psych}
+^
+
+#DATALINKS2
+^+2 EFFICIENCY: {Nothing is wasted, because nothing is spare}
+^-2 ECONOMY: {Refuses the market as a way of deciding what matters}
+^-1 INDUSTRY: {Builds slowly and on purpose}
+^Extra TALENT at each base per 5 citizens
+^Immune to the penalties of Eudaimonic society
+^Doubled penalties under Free Market
+
+#FACTIONTRUCE
+#xs 440
+#caption $CAPTION7
+"We are burning through a season's stores to kill each other,
+$TITLE0 $NAME1, and neither of us will eat the difference.
+Let us call Blood Truce and count what is left."
+
+"Agreed. There is little enough to go around."
+"Keep your accounts, $NAME3. I will keep my guns."
+
+#FACTIONTREATY
+#xs 440
+#caption $CAPTION7
+"You take what you need and no more, $TITLE0 $NAME1. That is
+rarer on this world than any technology. Let us sign a Treaty
+of Friendship and be poor together, deliberately."
+
+"Gladly. There is enough for both of us, if we are careful."
+"I did not come to this world to be careful."
+
+
+# ; This line must remain at end of file
