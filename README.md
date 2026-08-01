@@ -28,8 +28,16 @@ popups keep their original text.
 > `alphax.txt` would recreate the stock game, so this pack deliberately ships
 > none of it. The dialogue layer is the part that was actually original.
 
-Only the seven original factions have bibles. SMACX's factions (Angels,
-Caretakers, Cyborgs, Drones, Pirates, Cult, Usurpers) keep vanilla dialogue.
+All **fourteen** faction leaders have character bibles: the seven original SMAC
+leaders, plus the Alien Crossfire seven — Consciousness, Pirates, Free Drones,
+Data Angels, Cult of Planet, Caretakers and Usurpers. Their titles, adjectives,
+agendas and accusations are taken from each faction's own `.txt` in the game
+folder, so a generated line matches what the engine already says about them.
+
+> A leader with no bible falls back to vanilla dialogue silently, which is
+> indistinguishable from the mod not being installed. If speech looks canned,
+> check `chiron_trace.txt` for a `hook: rewriting …` line before assuming the
+> mod is broken.
 
 ## How it works
 
@@ -65,7 +73,6 @@ agreeing to a blank, so:
 Unpack it into the game folder and run `install.sh`. No compiler needed.
 
 ### From source
-
 The DLL source lives in a separate repo — clone it alongside this one:
 
 ```bash
