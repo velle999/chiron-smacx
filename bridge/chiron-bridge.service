@@ -12,6 +12,21 @@ ExecStart=%h/chiron-smacx/bridge/chiron-bridge.py --host 127.0.0.1 --port 11436
 Restart=on-failure
 RestartSec=2
 
+# To run the Claude backend under this unit, override all three of these
+# (systemctl --user edit chiron-bridge). A comment may not share a line with a
+# directive here -- a trailing # is read as part of the value, not as a comment.
+#
+#   [Service]
+#   ExecStart=
+#   ExecStart=%h/chiron-smacx/bridge/chiron-bridge.py --host 127.0.0.1 --port 11436 --backend claude,synapd
+#   EnvironmentFile=%h/.config/chiron/anthropic.env
+#   RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+#
+# The env file holds ANTHROPIC_API_KEY=... and should be chmod 600; the unit
+# reads it as the user, so it never needs to be world-readable. AF_INET6 is
+# added because the list below omits it, and an IPv6-first resolver would
+# otherwise fail to reach api.anthropic.com in a way that looks like a hang.
+
 # Loopback only, and it just moves bytes between a TCP socket and a unix socket.
 NoNewPrivileges=true
 PrivateTmp=true

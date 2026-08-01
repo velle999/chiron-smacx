@@ -23,12 +23,28 @@ docs. The DLL source is
 (branch `chiron`), a fork of Thinker that keeps upstream history so it can rebase
 onto induktio. It is deliberately *not* a submodule; clone it inside this one.
 
+## What the mod adds
+
+Five things, all of which fall back silently to stock behaviour if the bridge is
+down or a reply is unusable. There is no failure mode where a dialogue box comes
+up empty.
+
+| | |
+|---|---|
+| **Diplomacy** | 503 speech blocks rewritten in character at read time, so a leader asked the same thing twice does not answer the same way |
+| **Leader memory** | What leaders say follows from what has actually passed between you — the wars, the broken promises, the debts. See [Leader memory](#leader-memory) |
+| **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
+| **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
+| **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
+
 ## Quickstart
 
-You need Alpha Centauri: Alien Crossfire (v2.0), a local model served by
-[synapd](https://github.com/velle999/SYNAPSE), `llama-server` or `ollama`, and —
-if you are building rather than unpacking a release — an **msvcrt** compiler for
-32-bit Windows.
+You need Alpha Centauri: Alien Crossfire (v2.0), a model to write the lines, and
+— if you are building rather than unpacking a release — an **msvcrt** compiler
+for 32-bit Windows. The model can be local ([synapd](https://github.com/velle999/SYNAPSE),
+`llama-server` or `ollama`) or Anthropic's API; see
+[Ollama compatibility](#ollama-compatibility-both-directions) for pointing the
+same backend at either.
 
 > **On operating systems.** `thinker.dll` is a Windows DLL for a Windows game,
 > so nothing in the mod itself is Linux-only. This pack is developed and tested
@@ -72,20 +88,6 @@ never loaded and nothing below applies — go to
 | `Alt+T` | Thinker's options |
 | `Alt+N` | **Planetnet dispatch** — what changed since you last looked |
 
-## What the mod adds
-
-Five things, all of which fall back silently to stock behaviour if the bridge is
-down or a reply is unusable. There is no failure mode where a dialogue box comes
-up empty.
-
-| | |
-|---|---|
-| **Diplomacy** | 503 speech blocks rewritten in character at read time, so a leader asked the same thing twice does not answer the same way |
-| **Leader memory** | What leaders say follows from what has actually passed between you — the wars, the broken promises, the debts. See [Leader memory](#leader-memory) |
-| **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
-| **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
-| **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
-
 ## What this does and does not change
 
 The engine's logic is untouched. The same demand is made, the same buttons
@@ -124,12 +126,64 @@ folder, so a generated line matches what the engine already says about them.
 ```
                                                         ┌─> synapd    (unix socket)
 terranx.exe ──imports──> thinker.dll ──HTTP──> chiron-bridge ─> llama-server :8080
-                                                        └─> ollama    :11434
+                                                        ├─> ollama    :11434
+                                                        └─> Claude    (api.anthropic.com)
 ```
 
-The bridge tries those in order, or one named with `--backend`. Only the first
-needs SynapseOS; the other two need nothing but a listening port, which is what
-makes the pack runnable anywhere.
+The bridge tries the local three in order, or whatever `--backend` names. Only
+the first needs SynapseOS; the other two need nothing but a listening port,
+which is what makes the pack runnable anywhere.
+
+**Claude is opt-in and never in `auto`.** The local three are free and work with
+the network down; quietly reaching for a metered API because a local model
+happened to be stopped is a surprise bill, not a fallback. Name it, and chain it
+if you want a local safety net:
+
+```
+bridge/chiron-bridge.py --backend claude            # Claude, else vanilla text
+bridge/chiron-bridge.py --backend claude,synapd     # Claude, else the local 7B
+```
+
+Needs `pip install anthropic` and a credential (`ANTHROPIC_API_KEY`, or an
+`ant auth login` profile). Nothing else changes: `chiron.ini` still says
+`backend=bridge`, and the DLL is untouched. It has to work that way — the DLL
+speaks plain HTTP over raw ws2_32 sockets with no TLS, so it cannot reach an
+HTTPS endpoint itself. The cloud backend lives in the bridge or nowhere.
+
+Two settings are worth revisiting when you switch: `--temperature` does **not**
+reach Claude (sampling parameters are rejected outright on Opus 5, so variation
+comes from the prompt — the mission year, turn, and per-call counter that
+`build_prompt()` already stirs in), and a round trip over the network is slower
+than a local 7B, so `timeout_ms=8000` may need headroom.
+
+### Ollama compatibility, both directions
+
+The bridge speaks ollama's protocol, so anything already written against ollama
+reaches it by changing a host and port — including the DLL's own `backend=ollama`
+path, which needs no new C code:
+
+```
+POST /api/generate   ollama's body shape   ->  {"response": ...}
+GET  /api/tags       ollama's model list
+```
+
+A request naming a `claude-*` model (or whatever `--claude-model` is set to) goes
+to the Messages-API backend; anything else falls through to the local chain.
+`stream` is honoured — omit it and you get ollama's newline-delimited JSON, a
+stream of one object.
+
+And since **Ollama 0.14+ implements the Anthropic Messages API**, the same
+backend can point the other way:
+
+```
+bridge/chiron-bridge.py --backend claude \
+    --claude-base-url http://127.0.0.1:11434 --claude-model qwen3
+```
+
+Same code path, same request — the model answering is whichever one that server
+has loaded. Anthropic-specific options (thinking, effort, server-side fallback)
+are withheld when `--claude-base-url` is set, since a compatible endpoint
+implements a subset and is entitled to reject them.
 
 **The bridge is optional.** Set `backend=ollama` or `backend=llamacpp` in
 `chiron.ini` and the DLL talks to that server directly:
@@ -594,7 +648,7 @@ changes, and Scient's, to the in-memory image at startup.
 | `probe_protests` | `0` disables objecting to probe operations |
 | `max_tokens` | Reply length against the in-game pause. **110** is a paragraph |
 | `timeout_ms` | Give up and use vanilla text after this |
-| `backend` | `bridge` (default), or `ollama` / `llamacpp` to skip the bridge entirely |
+| `backend` | `bridge` (default), or `ollama` / `llamacpp` to skip the bridge entirely. Claude is reached through `bridge` — see above |
 | `model` | ollama only: which model to ask for |
 | `host`, `port` | Where that server is listening. Unset `port` follows the backend — 11436 / 11434 / 8080 |
 | `debug` | `1` writes `chiron.txt`: every label, whether it was rewritten, and why anything was rejected |
@@ -604,11 +658,14 @@ changes, and Scient's, to the in-memory image at startup.
 > a repeating leader enough room to say the same thing seven times and still be
 > cut off mid-word.
 
-The bridge itself takes `--backend auto|synapd|llamacpp|ollama`,
-`--llamacpp-url`, `--ollama-url`, `--ollama-model` and `--temperature`. `auto`
-probes cheaply and only tries to *start* synapd once nothing at all answers —
-doing that first cost 25 seconds per line on machines that simply do not have
-it.
+The bridge itself takes `--backend`, `--llamacpp-url`, `--ollama-url`,
+`--ollama-model`, `--claude-model` and `--temperature`. `--backend` is `auto`
+(the local three), one name, or a comma-separated chain tried left to right —
+`claude` only ever runs when you name it. `auto` probes cheaply and only tries
+to *start* synapd once nothing at all answers — doing that first cost 25 seconds
+per line on machines that simply do not have it. `--temperature` reaches
+`llamacpp` and `ollama` only: synapd's wire protocol has no such field, and
+Opus 5 returns a 400 for it.
 
 ## Tuning the writing
 
