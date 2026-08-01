@@ -65,7 +65,7 @@ never loaded and nothing below applies — go to
 
 ## What the mod adds
 
-Four things, all of which fall back silently to stock behaviour if the bridge is
+Five things, all of which fall back silently to stock behaviour if the bridge is
 down or a reply is unusable. There is no failure mode where a dialogue box comes
 up empty.
 
@@ -75,6 +75,7 @@ up empty.
 | **Leader memory** | What leaders say follows from what has actually passed between you — the wars, the broken promises, the debts. See [Leader memory](#leader-memory) |
 | **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
 | **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
+| **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
 
 ## What this does and does not change
 
@@ -240,6 +241,43 @@ a base count that was never true.
 
 > Rendered through a `#CHIRONNEWS` block in `modmenu.txt` — one more reason that
 > file has to be the copy `install.sh` ships.
+
+## Probe protests
+
+The game exempts probe teams from diplomacy. A faction you are not at war with
+can strip your labs every few turns, and your only answers are to accept it or
+declare war — which usually costs more than the research did.
+
+Now a theft is noticed at the start of your turn and you can demand they stop.
+They answer in character, and if they agree **their probe teams actually leave
+you alone** for 30 turns.
+
+> *"Your research is valuable. But my soldiers' lives are more so. I will not
+> risk them for it. I am a warrior, not a thief. I respect your strength. I will
+> call my teams off."* — Santiago, agreeing
+>
+> *"Our treaty does not grant you the right to dictate our actions. We will not
+> abandon our pursuit of knowledge."* — Lal, refusing
+
+**Chiron decides the words, never the outcome.** Whether they back down is
+settled from faction state on the same terms the engine uses — what standing
+they would forfeit, and whether your power ranking makes the threat credible. The
+model is only asked to say it in character. A leader who agreed and then went on
+stealing would be worse than never offering the conversation.
+
+What you can threaten scales with standing: a pact partner risks the pact, a
+treaty partner the treaty, and with nothing formal between you only strength
+talks — so an unbound faction that outranks you will simply refuse. A refusal is
+remembered and colours later dialogue. A vendetta cancels any promise outright.
+
+> Worth knowing, because it revises the usual complaint: the engine's own gate
+> checks `DIPLO_PACT` and **not** `DIPLO_TREATY`. An AI pact partner already
+> declines to probe you unless the probe was waypointed onto the base — it is
+> **treaty** partners that help themselves freely.
+
+The warning is stored in a block of `MFaction` the engine already saves, so it
+survives save/load with no save format of ours, and `sizeof(MFaction) == 1436`
+still holds. Set `probe_protests=0` in `chiron.ini` to turn the whole thing off.
 
 ## Install
 
@@ -482,6 +520,7 @@ changes, and Scient's, to the in-memory image at startup.
 |---|---|
 | `enabled` | `0` restores stock Thinker completely |
 | `base_names` | `0` restores the vanilla `basenames/` lists |
+| `probe_protests` | `0` disables objecting to probe operations |
 | `max_tokens` | Reply length against the in-game pause. **110** is a paragraph |
 | `timeout_ms` | Give up and use vanilla text after this |
 | `host`, `port` | Where the bridge is listening |
