@@ -17,6 +17,65 @@ The AI layer is ported from [Chiron Rising](https://github.com/velle999/Chiron-R
 — the character bibles from `src/llm/factionPersonalities.ts` and the prompt
 construction from `llmClient.ts`.
 
+**Two repos make this mod.** This one is the pack — installer, bridge, config,
+docs. The DLL source is
+[**velle999/thinker-chiron**](https://github.com/velle999/thinker-chiron/tree/chiron)
+(branch `chiron`), a fork of Thinker that keeps upstream history so it can rebase
+onto induktio. It is deliberately *not* a submodule; clone it inside this one.
+
+## Quickstart
+
+You need a Linux box with Alpha Centauri: Alien Crossfire (v2.0), a local model
+served by [synapd](https://github.com/velle999/SYNAPSE), `llama-server` or
+`ollama`, and — if you are building rather than unpacking a release — an
+**msvcrt** cross-compiler.
+
+```bash
+# 1. get both repos
+git clone https://github.com/velle999/chiron-smacx
+git clone -b chiron https://github.com/velle999/thinker-chiron \
+    chiron-smacx/thinker-chiron
+cd chiron-smacx
+
+# 2. build the DLL  -- see "From source" below for the configure + build pair.
+#    Skip this entirely if you unpacked a release zip.
+#    The compiler is the one thing that bites: it MUST be msvcrt, not UCRT.
+
+# 3. install into the game folder, start the bridge, patch the import table
+./install.sh
+
+# 4. play
+#    launch Alpha Centauri from Steam as usual
+```
+
+`install.sh` finds a Steam install by default; point it elsewhere with
+`GAME=/path/to/game ./install.sh`. It backs up everything it touches to
+`<game>/_vanilla_backup/`, so uninstalling is `patch-imports.py --restore` plus
+putting those files back.
+
+**Check it loaded:** `Ctrl+F4` shows the mod version. If it does not, the DLL
+never loaded and nothing below applies — go to
+[Troubleshooting](#troubleshooting).
+
+| Key | |
+|---|---|
+| `Ctrl+F4` | Mod version — the one-second check that Chiron is live |
+| `Alt+T` | Thinker's options |
+| `Alt+N` | **Planetnet dispatch** — what changed since you last looked |
+
+## What the mod adds
+
+Four things, all of which fall back silently to stock behaviour if the bridge is
+down or a reply is unusable. There is no failure mode where a dialogue box comes
+up empty.
+
+| | |
+|---|---|
+| **Diplomacy** | 503 speech blocks rewritten in character at read time, so a leader asked the same thing twice does not answer the same way |
+| **Leader memory** | What leaders say follows from what has actually passed between you — the wars, the broken promises, the debts. See [Leader memory](#leader-memory) |
+| **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
+| **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
+
 ## What this does and does not change
 
 The engine's logic is untouched. The same demand is made, the same buttons
@@ -106,6 +165,81 @@ agreeing to a blank, so:
 > echoing the placeholder, so a perfectly good line was discarded and the
 > vanilla one shown, identically, every single visit. Losing `$NAME` costs an
 > honorific. Losing `$TECH0` leaves you agreeing to a blank.
+
+## Leader memory
+
+A leader who lost two bases to you last turn used to open exactly like one you
+had never met. Every prompt now carries what has actually passed between the two
+of you, and it changes what they say:
+
+| History | Santiago, on the same tech demand |
+|---|---|
+| first meeting | *"Give me your intel on that tech, or face my wrath."* |
+| long grudge | *"Your betrayals and thefts have left a bitter taste."* |
+| old allies | *"Or face my wrath, and the debt you owe."* |
+
+**None of this is recorded by the mod.** The engine already keeps the whole
+per-pair relationship in its `Faction` struct and writes it into the save —
+treaties and vendettas, broken promises counted in both directions, the turn you
+last spoke, stolen research, mind control, gifts, loan balances, power ranking.
+`build_dossier()` reads it at prompt time, so it cannot drift out of sync with
+the game and it survives save/load with no save format of ours.
+
+The rule asks for tone before recital. Told plainly to *use* the history, a small
+model opens every line with a grievance inventory; what makes a leader feel like
+they remember is that a betrayal soured how they greet you. At a first meeting no
+history is offered and none is invented.
+
+## Base names
+
+Every game drew the same 75 names from `basenames/gaians.txt` in much the same
+order, and a wide empire ran the list out and fell through to `Sector 14`. Bases
+are now named from the faction's own culture — `Mycelial Haven` for the Gaians,
+`Redemption's Ridge` for the Believers, `Valor Vanguard` for the Spartans.
+
+Names are generated **a dozen at a time** and drawn from a pool, because base
+founding is not a dialogue box: the AI factions do it throughout turn
+processing, and a two-second stall on each would read as the turn hanging. One
+call per twelve bases puts the whole-game cost at a handful of pauses. One
+failure latches that faction's pool for the session rather than retrying at
+every founding.
+
+The prompt shows the faction's **own shipped names** as the house style, which
+is the entire difference between this working and not. Described only in prose,
+the model reached for the vocabulary of the creed and welded it together — the
+Hive returned `CollectiveCold`, `IllusionRelease`, `PainFreedom`. Its real list
+says `Collective Bastion`, `Communal Hub`. Six of those in the prompt fixed it
+outright.
+
+Set `base_names=0` in `chiron.ini` to restore the vanilla lists.
+
+## Planetnet
+
+`Alt+N` in the map window writes an in-fiction wire dispatch on the state of
+Planet. It is the only feature here with no vanilla text behind it, and so the
+only one you ask for rather than one that happens to you — which is also why a
+two-second wait is acceptable where the same pause mid-turn would not be.
+
+> The Human Hive, our most aggressive neighbor, declared war on The Peacekeeping
+> Forces. The Hive's expansion continues, with two new bases founded. The Spartan
+> Federation, meanwhile, lost a base. The Human Hive was condemned for a major
+> atrocity, but details remain scarce.
+
+**News is what changed, and a snapshot is not news.** Handed the current
+standings, the model transcribed the table and then padded to the token ceiling
+with invention — losses nobody took, a famine nobody suffered, a war between two
+factions who were not at war. That is not the model misbehaving: a snapshot
+contains no events, so asking for a report of events leaves it nothing to write
+and every reason to make some up. Chiron keeps the previous bulletin's numbers
+and reports the **diff** — bases gained and lost, wars declared and ended, pacts
+signed, atrocities condemned, factions eliminated.
+
+When nothing has changed the model is not called at all; you get *"No
+developments since the last bulletin."* Asked to report a quiet turn it invented
+a base count that was never true.
+
+> Rendered through a `#CHIRONNEWS` block in `modmenu.txt` — one more reason that
+> file has to be the copy `install.sh` ships.
 
 ## Install
 
@@ -342,10 +476,21 @@ changes, and Scient's, to the in-memory image at startup.
 
 ## Configuration
 
-`chiron.ini`, installed into the game folder. Set `enabled=0` for stock Thinker,
-or `debug=1` to get `chiron.txt` listing every label, whether it was rewritten,
-and why anything was rejected. `max_tokens` trades reply length against the
-in-game pause; `port` points at the bridge.
+`chiron.ini`, installed into the game folder.
+
+| Key | |
+|---|---|
+| `enabled` | `0` restores stock Thinker completely |
+| `base_names` | `0` restores the vanilla `basenames/` lists |
+| `max_tokens` | Reply length against the in-game pause. **110** is a paragraph |
+| `timeout_ms` | Give up and use vanilla text after this |
+| `host`, `port` | Where the bridge is listening |
+| `debug` | `1` writes `chiron.txt`: every label, whether it was rewritten, and why anything was rejected |
+
+> `max_tokens` in the ini **overrides** the default compiled into the DLL, so
+> editing the C constant alone does nothing. It shipped at 320 once, which gave
+> a repeating leader enough room to say the same thing seven times and still be
+> cut off mid-word.
 
 The bridge itself takes `--backend auto|synapd|llamacpp|ollama`,
 `--llamacpp-url`, `--ollama-url`, `--ollama-model` and `--temperature`. `auto`
@@ -358,6 +503,24 @@ it.
 Quality comes mostly from the prompt; `src/chiron.cpp`'s `build_prompt()` is
 where to iterate. Judge output without launching the game by posting a prompt
 straight at the bridge:
+
+**Put the rule that must hold at the very end.** This came up three separate
+times and cost real debugging each time — the close of the prompt is what a
+small model weighs most.
+
+- The variation counter shipped as the last line, `- Phrasing 3: word it
+  differently than before.` A numbered item closing a bullet list is the
+  strongest possible cue to write another one, and Santiago duly opened a popup
+  with `- Phrasing 2: use a metaphor.` followed by three labelled alternative
+  greetings.
+- Moving the mandatory-placeholder reminder from the middle of the rules to the
+  last line before the answer cue took `$TECH0` retention from 9/12 to 11/12.
+  Every drop is a whole generation discarded for vanilla.
+- Planetnet's "invent nothing" rule sits alone at the end for the same reason.
+
+Corollary: end on a cue to *speak*, not on a rule. Chiron's prompts close with
+`MESSAGE IN YOUR VOICE:` and `DISPATCH:`.
+
 
 ```bash
 curl -s localhost:11436/generate -H 'Content-Type: application/json' \
@@ -391,6 +554,15 @@ anyway, but the real fix is on the backend.
 - `synapd` needs **0.1.0-22 or newer**; before that its sampler was hardcoded
   greedy and its wire protocol carried no temperature at all. `synapd
   --temperature 0` restores the deterministic behaviour.
+
+Greedy decoding does not just repeat between visits — it loops *inside* one
+reply, because a model with no repetition penalty will keep writing a sentence
+it likes. Lal once restated the same commendation seven times in a single popup
+and still ran out of room mid-word. Sampling is not the mod's to fix, so
+`tidy_reply()` trims what arrives: everything from a bullet or an ALL-CAPS label
+onwards, then duplicate sentences and anything past four, then a trailing
+fragment with no terminator. It also normalises the quoting to the one pair per
+block that every shipped speech block uses.
 
 ## Layout
 
