@@ -111,17 +111,17 @@ symptom is the draw-buffer error below, with no mention of resolution. 1080,
 
 On a compositor with an always-visible panel, `video_mode=0` sizes the window to
 the *full* screen while the panel reserves part of it, so the bottom of the menu
-falls off the edge — "EXIT GAME" and the copyright line disappear. Subtract the
-panel's exclusive zone and round **down** to a multiple of 8:
+falls off the edge — "EXIT GAME" and the copyright line disappear.
 
-```
-2560x1440 screen − 28px panel = 2560x1412 usable
-1412 % 8 = 4                  → use 1408
-```
+**Force the window fullscreen from the compositor** rather than shrinking the
+game — on synui that is `Super+Shift+F`. Keep the game at the monitor's real
+resolution; a fullscreen window covers the panel and nothing is clipped.
 
-so `video_mode=2` with `2560x1408`. Rounding *up* to 1416 would exceed the
-usable area; leaving it at 1412 trips the divisibility rule and the game dies
-with the draw-buffer error instead of just looking wrong.
+Shrinking to fit the panel is the fallback if your compositor cannot force
+fullscreen. Subtract the exclusive zone and round **down** to a multiple of 8 —
+`2560x1440` minus a 28px panel is `1412`, and `1412 % 8 = 4`, so `1408`. Leaving
+it at 1412 trips the divisibility rule and the game dies with the draw-buffer
+error instead of merely looking wrong.
 
 ## Troubleshooting
 
