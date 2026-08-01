@@ -10,7 +10,11 @@ set -euo pipefail
 DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centauri"
 GAME="${GAME:-$DEFAULT_GAME}"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD="$SRC/thinker-chiron/build/release"
+# The GCC 14 build is the one that runs. Arch's mingw-w64 (GCC 16, UCRT-native)
+# produces a DLL that imports msvcrt.dll yet still dies at startup with
+# "Unable to allocate draw-buffer". See docs/toolchain.md.
+BUILD="$SRC/thinker-chiron/build/gcc14"
+[ -f "$BUILD/thinker.dll" ] || BUILD="$SRC/thinker-chiron/build/release"
 
 if [ ! -f "$GAME/terranx.exe" ]; then
     echo "error: no terranx.exe in $GAME" >&2

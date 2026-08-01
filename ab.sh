@@ -24,8 +24,12 @@ DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centau
 GAME="${GAME:-$DEFAULT_GAME}"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTROL="$SRC/thinker.dll.upstream-msvcrt-control"
-BUILT="$SRC/thinker-chiron/build/release/thinker.dll"
 RELEASE="$SRC/reference/thinker-v5.4-release.dll"
+
+# Prefer the GCC 14 build. build/release is Arch's GCC 16 output, kept only so
+# the two can still be compared; it does not launch. See docs/toolchain.md.
+BUILT="$SRC/thinker-chiron/build/gcc14/thinker.dll"
+[ -f "$BUILT" ] || BUILT="$SRC/thinker-chiron/build/release/thinker.dll"
 
 sha() { sha1sum "$1" 2>/dev/null | cut -c1-12; }
 
