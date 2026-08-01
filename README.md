@@ -25,10 +25,22 @@ onto induktio. It is deliberately *not* a submodule; clone it inside this one.
 
 ## Quickstart
 
-You need a Linux box with Alpha Centauri: Alien Crossfire (v2.0), a local model
-served by [synapd](https://github.com/velle999/SYNAPSE), `llama-server` or
-`ollama`, and — if you are building rather than unpacking a release — an
-**msvcrt** cross-compiler.
+You need Alpha Centauri: Alien Crossfire (v2.0), a local model served by
+[synapd](https://github.com/velle999/SYNAPSE), `llama-server` or `ollama`, and —
+if you are building rather than unpacking a release — an **msvcrt** compiler for
+32-bit Windows.
+
+> **On operating systems.** `thinker.dll` is a Windows DLL for a Windows game,
+> so nothing in the mod itself is Linux-only. This pack is developed and tested
+> on **Linux with Steam/Proton**, which is the path the instructions describe.
+>
+> Windows should work and is **untested**: the DLL is native there, the bridge
+> is pure-stdlib Python, and `patch-imports.py` is portable. Two pieces of the
+> install are not — `install.sh` is bash (use WSL or Git Bash, or copy the files
+> and run `patch-imports.py` yourself), and the bridge's systemd user unit has
+> no equivalent, so start `bridge/chiron-bridge.py` however you normally would.
+> If you try it, the objdump check under [From source](#from-source) is still
+> the one that matters.
 
 ```bash
 # 1. get both repos
@@ -267,8 +279,17 @@ stealing would be worse than never offering the conversation.
 
 What you can threaten scales with standing: a pact partner risks the pact, a
 treaty partner the treaty, and with nothing formal between you only strength
-talks — so an unbound faction that outranks you will simply refuse. A refusal is
-remembered and colours later dialogue. A vendetta cancels any promise outright.
+talks — so an unbound faction that outranks you will simply refuse. A vendetta
+cancels any promise outright.
+
+**A refusal is grounds for war.** For 30 turns afterwards you may break off
+relations with them without the usual dishonour — no integrity blemish, no
+reputation loss. That reuses `is_victim`, the engine's own flag for "they
+wronged you first", so it behaves exactly like the atrocity case the game
+already models rather than a second rule alongside it. You are told when the
+grounds are granted, because a mechanic living only in the reputation arithmetic
+is one nobody can act on deliberately. Grounds you never use go stale on the
+same 30-turn clock.
 
 > Worth knowing, because it revises the usual complaint: the engine's own gate
 > checks `DIPLO_PACT` and **not** `DIPLO_TREATY`. An AI pact partner already
