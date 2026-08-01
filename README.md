@@ -159,6 +159,41 @@ An `msvcrt.dll` import is **necessary but not sufficient** — `-mcrtdll=msvcrt-
 flips the import table while libstdc++ stays a UCRT libstdc++, so that check can
 pass on a DLL that still cannot run.
 
+### Every leader says the same canned line
+
+The mod is working and the backend is dead. Vanilla reuses one block per label,
+so all seven factions delivering an identical demand is the signature of the
+fallback path doing its job.
+
+Check `chiron.txt`:
+
+```
+http: non-200 response: HTTP/1.1 502 Bad Gateway
+[DEMANDTECH11] generation failed, using vanilla
+```
+
+**On a desktop that manages the GPU, suspect its game mode first.** synui detects
+a fullscreen XWayland window as a game and runs
+
+```
+sudo -n systemctl stop synapd.socket synapd.service
+```
+
+to free ~4GB of VRAM. That is correct for a modern title and exactly wrong here:
+launching SMACX kills the model the mod needs, so every line falls back to
+vanilla for the whole session. The journal shows synapd starting and taking
+SIGTERM in the same second.
+
+Fix it by excluding the game from detection, in `~/.config/synui/synuirc` —
+the list replaces the built-in default, so repeat the stock entries:
+
+```
+game_exclude = firefox chibi tepris nexus-chat foot steam_app_2204130
+```
+
+`Super+G` cycles auto → forced-on → forced-off → auto for the current session.
+A 1999 game does not want the VRAM, so there is nothing to trade away.
+
 ### Bisecting
 
 `ab.sh` swaps the installed DLL so each launch tests one variable:
