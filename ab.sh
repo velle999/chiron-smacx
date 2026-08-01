@@ -8,10 +8,16 @@
 # several launches. Swapping one binary at a time is the only method that has
 # actually isolated anything here.
 #
-#   ./ab.sh control   zero-Chiron build      -- if this fails, Chiron is innocent
-#   ./ab.sh chiron    current build          -- the mod as it stands
-#   ./ab.sh vanilla   no thinker.dll at all  -- unmodded terranx, via .vanilla exe
+#   ./ab.sh release   upstream's SHIPPED v5.4 dll -- the known-good binary
+#   ./ab.sh control   zero-Chiron local build     -- if this fails, Chiron is innocent
+#   ./ab.sh chiron    current build               -- the mod as it stands
+#   ./ab.sh vanilla   no thinker.dll at all       -- unmodded terranx
 #   ./ab.sh status    what is installed right now
+#
+# release vs control is the load-bearing comparison: same source, different
+# compiler. Upstream ships a GCC 14.2.0 MinGW-Builds binary; Arch's toolchain is
+# GCC 16.1.0 and defaults to UCRT. If release works and control does not, the
+# toolchain is the fault and no amount of editing chiron.cpp will help.
 set -euo pipefail
 
 DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centauri"
@@ -19,6 +25,7 @@ GAME="${GAME:-$DEFAULT_GAME}"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTROL="$SRC/thinker.dll.upstream-msvcrt-control"
 BUILT="$SRC/thinker-chiron/build/release/thinker.dll"
+RELEASE="$SRC/reference/thinker-v5.4-release.dll"
 
 sha() { sha1sum "$1" 2>/dev/null | cut -c1-12; }
 
@@ -27,6 +34,14 @@ clear_traces() {
 }
 
 case "${1:-status}" in
+release)
+    [ -f "$RELEASE" ] || { echo "error: no release DLL at $RELEASE" >&2; exit 1; }
+    install -m644 "$RELEASE" "$GAME/thinker.dll"
+    python3 "$SRC/patch-imports.py" "$GAME/terranx.exe" >/dev/null
+    clear_traces
+    echo "installed UPSTREAM RELEASE v5.4  $(sha "$GAME/thinker.dll")"
+    echo "known-good binary, GCC 14.2.0 MinGW-Builds. No Chiron code."
+    ;;
 control)
     [ -f "$CONTROL" ] || { echo "error: no control DLL at $CONTROL" >&2; exit 1; }
     install -m644 "$CONTROL" "$GAME/thinker.dll"
@@ -66,7 +81,7 @@ status)
     cat "$GAME/chiron_trace.txt" 2>/dev/null || echo "(none)"
     ;;
 *)
-    echo "usage: $0 {control|chiron|vanilla|status}" >&2
+    echo "usage: $0 {release|control|chiron|vanilla|status}" >&2
     exit 1
     ;;
 esac
