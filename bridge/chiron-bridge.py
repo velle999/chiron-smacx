@@ -19,6 +19,7 @@ import json
 import os
 import socket
 import struct
+import subprocess
 import sys
 import threading
 import time
@@ -37,6 +38,10 @@ SYN_QF_TOKENS_MASK = 0x7FFF
 DEFAULT_SOCKET = "/run/synapd/synapd.sock"
 
 
+# Set once the sandbox proves it will not let us escalate; see wake_synapd().
+_wake_disabled = False
+
+
 class SynapdError(RuntimeError):
     pass
 
@@ -49,6 +54,64 @@ def _recv_exact(sock, n):
             raise SynapdError("synapd: connection closed mid-message")
         buf.extend(chunk)
     return bytes(buf)
+
+
+def wake_synapd(socket_path, wait=25.0):
+    """
+    Start synapd and wait for its socket to answer. Returns True if it does.
+
+    synui's game mode stops synapd to free ~4GB of VRAM as soon as a game goes
+    fullscreen -- which is exactly when this bridge starts being used, so the
+    mod would spend the entire session falling back to vanilla text. Excluding
+    the game from detection is the proper fix and does not need this, but that
+    only takes effect when the compositor next reads its config, and a mod that
+    silently degrades until then is worse than one that argues.
+
+    The command matches /etc/sudoers.d/synapd-gamemode character for character.
+    sudoers matches the whole command line, so it must stay in step with game
+    mode's own game_ai_start_cmd -- if they drift, this silently stops working.
+    """
+    global _wake_disabled
+    if _wake_disabled:
+        return False
+
+    cmd = ["sudo", "-n", "systemctl", "start", "synapd.socket", "synapd.service"]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=20)
+    except Exception as e:
+        sys.stderr.write(f"[bridge] could not start synapd: {e}\n")
+        return False
+    if r.returncode != 0:
+        err = r.stderr.decode(errors="replace").strip()
+        sys.stderr.write(f"[bridge] start synapd failed: {err}\n")
+        # The unit is hardened with NoNewPrivileges and RestrictSUIDSGID, which
+        # is why sudo cannot escalate here. That is a deliberate choice for a
+        # network-facing service, so do not fight it -- give up for the rest of
+        # the session rather than logging this on every single line of dialogue.
+        # Excluding the game from the compositor's game mode is the better fix;
+        # see README. To enable this path instead, drop NoNewPrivileges= and
+        # RestrictSUIDSGID= from chiron-bridge.service.
+        if "no new privileges" in err.lower() or "sudo.conf" in err:
+            sys.stderr.write("[bridge] sandbox forbids escalation; "
+                             "not trying to start synapd again this session\n")
+            _wake_disabled = True
+        return False
+
+    # The unit is active well before the model finishes loading, so poll the
+    # socket rather than trusting systemctl's return.
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.settimeout(2.0)
+            s.connect(socket_path)
+            s.close()
+            sys.stderr.write("[bridge] synapd was down; started it\n")
+            return True
+        except OSError:
+            time.sleep(0.5)
+    sys.stderr.write("[bridge] synapd did not come up in time\n")
+    return False
 
 
 def synapd_query(prompt, max_tokens=400, socket_path=DEFAULT_SOCKET, timeout=120.0):
@@ -108,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "not found"})
 
-    def do_POST(self):
+    def do_POST(self):  # noqa: C901  (kept flat; the retry path reads better inline)
         if self.path.rstrip("/") != "/generate":
             self._send(404, {"error": "not found"})
             return
@@ -132,8 +195,19 @@ class Handler(BaseHTTPRequestHandler):
             text = synapd_query(prompt, max_tokens,
                                 self.server.socket_path, self.server.timeout)
         except Exception as e:
-            self._send(502, {"error": str(e)})
-            return
+            # A desktop that frees the GPU for games stops synapd the moment the
+            # game goes fullscreen, which is precisely when this bridge is
+            # needed. Bring it back and retry once rather than handing the mod a
+            # 502 and letting it fall back to vanilla for the whole session.
+            if not wake_synapd(self.server.socket_path):
+                self._send(502, {"error": str(e)})
+                return
+            try:
+                text = synapd_query(prompt, max_tokens,
+                                    self.server.socket_path, self.server.timeout)
+            except Exception as e2:
+                self._send(502, {"error": str(e2)})
+                return
         dt = time.time() - t0
         if self.server.verbose:
             sys.stderr.write(f"[bridge] generated {len(text)} chars in {dt:.1f}s\n")
