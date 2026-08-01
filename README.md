@@ -66,6 +66,15 @@ Unpack it into the game folder and run `install.sh`. No compiler needed.
 
 ### From source
 
+The DLL source lives in a separate repo — clone it alongside this one:
+
+```bash
+git clone https://github.com/velle999/chiron-smacx
+git clone -b chiron https://github.com/velle999/thinker-chiron chiron-smacx/thinker-chiron
+cd chiron-smacx
+```
+
+
 **The compiler matters.** Thinker must be built against **msvcrt**, and a
 distro toolchain that defaults to UCRT will produce a DLL that loads and then
 kills the game. Arch's mingw-w64 is one of those. See
@@ -210,7 +219,10 @@ whole rewrite path in Python so you can judge output without launching the game.
 
 | Path | |
 |---|---|
-| `thinker-chiron/` | Thinker fork, `chiron` branch. All new code in `src/chiron.{h,cpp}` |
+| [`thinker-chiron/`](https://github.com/velle999/thinker-chiron/tree/chiron) | Thinker fork, `chiron` branch — separate repo, keeps upstream history so it can rebase onto induktio. All new code in `src/chiron.{h,cpp}` |
+| `ab.sh` | Swap the installed DLL for single-variable launch tests |
+| `package.sh` | Build a distributable zip needing no compiler |
+| `docs/toolchain.md` | Why the compiler matters, and a root-free GCC 14 setup |
 | `bridge/` | HTTP front end for synapd, plus its user service |
 | `chiron.ini` | Runtime config, installed into the game folder |
 | `patch-imports.py` | Import-table redirect, with `--restore` |
