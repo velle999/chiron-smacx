@@ -2,9 +2,15 @@
 
 Faction leaders in SMACX speak lines written on the spot by a local model,
 instead of the ~1500 canned strings in `xscript.txt`. Built on
-[Thinker](https://github.com/induktio/thinker) v5.4, which also carries
+[Thinker](https://github.com/induktio/thinker) at `v5.4-6-g1eda847` — six
+commits past the v5.4 release, because Chiron's interception point
+(`text_open()`) only exists on master. Thinker also carries
 [Scient's Unofficial Patch](https://github.com/DrazharLn/scient-unofficial-smacx-patch)
 v2.0.
+
+> Because this is a **master** build and not the release, Thinker's own data
+> files must match the DLL — `modmenu.txt` in particular. `install.sh` handles
+> it; see [Troubleshooting](#troubleshooting) for what happens when it doesn't.
 
 The AI layer is ported from [Chiron Rising](https://github.com/velle999/Chiron-Rising)
 — the character bibles from `src/llm/factionPersonalities.ts` and the prompt
@@ -54,17 +60,118 @@ agreeing to a blank, so:
 
 ## Install
 
+### From a release zip
+
+Unpack it into the game folder and run `install.sh`. No compiler needed.
+
+### From source
+
+**The compiler matters.** Thinker must be built against **msvcrt**, and a
+distro toolchain that defaults to UCRT will produce a DLL that loads and then
+kills the game. Arch's mingw-w64 is one of those. See
+[`docs/toolchain.md`](docs/toolchain.md) for the full story and a root-free
+setup using Debian's GCC 14.2.0 cross-compiler.
+
 ```bash
-cd thinker-chiron && cmake --preset release && cmake --build --preset release
-cd .. && ./install.sh
+cmake -S thinker-chiron -B thinker-chiron/build/gcc14 -G "Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Windows \
+  -DCMAKE_C_COMPILER=$HOME/toolchains/bin14/i686-w64-mingw32-gcc \
+  -DCMAKE_CXX_COMPILER=$HOME/toolchains/bin14/i686-w64-mingw32-g++ \
+  -DCMAKE_RC_COMPILER=$HOME/toolchains/bin14/i686-w64-mingw32-windres
+cmake --build thinker-chiron/build/gcc14 -j"$(nproc)"
+./install.sh
 ```
 
-Needs `mingw-w64-gcc` (`i686-w64-mingw32-g++`). The installer backs up anything
-it overwrites to `<game>/_vanilla_backup/`, keeps `terranx.exe.vanilla`, and
-enables the bridge as a user service.
+Configure must report `MOD_CRT_IS_MSVCRT - Success`. If it warns instead, stop
+and fix the toolchain — the build will compile and link cleanly and then fail
+at startup.
+
+The installer backs up anything it overwrites to `<game>/_vanilla_backup/`,
+installs Thinker's data files alongside the DLL, keeps `terranx.exe.vanilla`,
+and enables the bridge as a user service. It leaves `thinker.ini` alone, since
+that holds your video settings.
 
 Then launch from Steam normally. `Ctrl+F4` shows the mod version; `Alt+T` opens
 Thinker's options. If neither shows the mod, it did not load.
+
+### Display
+
+`thinker.ini` in the game folder:
+
+| `video_mode` | |
+|---|---|
+| `0` | fullscreen at the primary monitor's native resolution |
+| `1` | fullscreen at `window_width`×`window_height` |
+| `2` | borderless windowed at those dimensions |
+
+**Both dimensions must be divisible by 8.** `valid_resolution()` rejects
+anything else, because the engine's `Buffer_copy` crashes on it — and the only
+symptom is the draw-buffer error below, with no mention of resolution. 1080,
+1440 and 1920 are fine; 900 is not.
+
+On a compositor with an always-visible panel, `video_mode=0` sizes the window to
+the *full* screen while the panel reserves part of it, so the bottom of the menu
+falls off the edge — "EXIT GAME" and the copyright line disappear. Subtract the
+panel's exclusive zone and round **down** to a multiple of 8:
+
+```
+2560x1440 screen − 28px panel = 2560x1412 usable
+1412 % 8 = 4                  → use 1408
+```
+
+so `video_mode=2` with `2560x1408`. Rounding *up* to 1416 would exceed the
+usable area; leaving it at 1412 trips the divisibility rule and the game dies
+with the draw-buffer error instead of just looking wrong.
+
+## Troubleshooting
+
+### "Unable to allocate draw-buffer; terminating program"
+
+The game plays its music, draws the Alien Crossfire splash, and dies. **This one
+message has at least four unrelated causes**, and it never once indicates what
+is actually wrong. Do not reason about it — bisect.
+
+| Cause | Check |
+|---|---|
+| Thinker's data files don't match the DLL | `grep -c '^#TOPMENU' <game>/modmenu.txt` — a master build needs it |
+| Built by a UCRT toolchain | `objdump -p thinker.dll \| grep 'DLL Name'` must show `msvcrt.dll`, **and** configure must have said `MOD_CRT_IS_MSVCRT - Success` |
+| A window dimension not divisible by 8 | `thinker.ini` |
+| Winsock loaded before the draw buffer is reserved | fixed; `WS2_32` must **not** appear in the import table |
+
+An `msvcrt.dll` import is **necessary but not sufficient** — `-mcrtdll=msvcrt-os`
+flips the import table while libstdc++ stays a UCRT libstdc++, so that check can
+pass on a DLL that still cannot run.
+
+### Bisecting
+
+`ab.sh` swaps the installed DLL so each launch tests one variable:
+
+```
+./ab.sh release   upstream's shipped v5.4 — known-good, no Chiron code
+./ab.sh control   our build, no Chiron code
+./ab.sh chiron    the mod
+./ab.sh vanilla   unpatched terranx, no thinker.dll at all
+./ab.sh status    what is installed, plus the current trace
+```
+
+`release` vs `chiron` is the load-bearing comparison. Note that `release` is the
+**v5.4** binary with **v5.4** data files, so swapping to it and back also swaps
+what `modmenu.txt` needs to be — `install.sh` puts the right one back.
+
+### chiron_trace.txt
+
+Written unconditionally to the game folder, with no configuration behind it.
+Its last line is how far the process got:
+
+| | |
+|---|---|
+| *missing* | `thinker.dll` never loaded |
+| `dllmain: attach` | loaded, died in Thinker's setup |
+| `dllmain: patch_setup ok` | in-memory patching worked |
+| `text_open: …` | reached its first text lookup |
+| `init: …` | Chiron config came up |
+| `hook: rewriting …` | a diplomacy label matched |
+| `winsock: ready=…` | first generation attempted |
 
 ### Why the import patch
 

@@ -16,3 +16,6 @@ __pycache__/
 # Upstream's shipped v5.4 binaries, kept as the known-good reference for A/B.
 # Redownloadable from github.com/induktio/thinker/releases; not ours to vendor.
 reference/
+
+# Built release zips.
+dist/
