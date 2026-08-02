@@ -364,7 +364,12 @@ Working. Last reply 1.9s, 42 calls, 0 failed.
   Generated dialogue: on.
   Base names from faction culture: on.
   Object to probe teams: on.
+  Future Society repricing: off...
 ```
+
+The last entry opens a submenu of its own, which prints the three Future Society
+rows as the game currently holds them and toggles the repricing live — see
+[Future Society repricing](#future-society-repricing).
 
 **The status line is the reason this exists.** Every failure path in the mod
 falls back to the game's own text — deliberately, because a dialogue box coming
@@ -558,6 +563,13 @@ escape pays exactly what every other row pays, forever. Note the clause zeroes
 make it unbuyable — it changes what you lose until the project lands, and since
 a project is singular, for everyone else that is the whole game. Full reasoning
 is in [`se-rebalance.txt`](se-rebalance.txt).
+
+> **Faction rules stack on top of all this**, in the same routine. `IMPUNITY`
+> negates a model's negatives for one faction and `PENALTY` doubles them;
+> `IMMUNITY` and `ROBUST` clamp or halve by effect. Kaya's Sufficiency ships
+> `IMPUNITY, Eudaimonic`, so she never pays that `--MORALE` at all — repricing
+> or not. Read `social_calc()` before concluding what an SE row costs anyone in
+> particular.
 
 > **It changes a game already in progress.** A save records which social model
 > you picked, not what that model does, so a running game silently takes the new
