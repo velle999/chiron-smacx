@@ -501,6 +501,10 @@ can be held to is a courtesy, not a mechanic.
 > and an affront to me as a fellow CEO. Cease them at once."* — Morgan, with no
 > treaty between you
 
+You can also answer them in your own words before deciding — see
+[Talking back](#talking-back). Talking settles nothing, so the same choice is
+put to you again afterwards, once.
+
 Agree and your probe teams stand down against them for 30 turns. You can still
 break your word — a promise you cannot break is a lock rather than a decision —
 but you are asked to confirm it, and it is recorded in the engine's own
