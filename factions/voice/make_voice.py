@@ -34,6 +34,9 @@ VOICE_MODEL = "/usr/share/piper-voices/en_GB-cori-medium.onnx"
 TREATMENT = {
     "suffic": ["pitch", "-110", "tempo", "-s", "0.94"],
     "oracle": ["pitch", "90", "tempo", "-s", "1.05"],
+    # Vashti sits between them on purpose: warmer and lower than Ravn, quicker
+    # than Kaya. She is comfortable, and never sounds like she is being pressed.
+    "assure": ["pitch", "-40", "tempo", "-s", "0.98"],
 }
 
 

@@ -1,0 +1,83 @@
+; ═══════════════════════════════════════════════════════════════
+;  CHIRON RISING — Future Society repricing (OPTIONAL)
+; ═══════════════════════════════════════════════════════════════
+;
+; Apply with:  ./install.sh --se-rebalance
+; Undo with:   ./install.sh          (a plain reinstall restores stock alphax.txt)
+;
+; This is OFF by default and is the only part of the mod that changes the rules
+; rather than the words. It also changes a game already in progress: SMAC saves
+; store which social model you picked, not what that model does, so a running
+; game silently picks up the new effects the next time it loads. Finish a game
+; before applying it, or apply it and accept that.
+;
+;
+; WHY
+;
+; Count the ± pips on every row of the stock #SOCIO table:
+;
+;     Police State    +4/-2      Free Market   +2/-8      Power       +4/-2
+;     Democratic      +4/-2      Planned       +3/-2      Knowledge   +3/-2
+;     Fundamentalist  +3/-2      Green         +4/-2      Wealth      +2/-2
+;     Cybernetic      +6/-3      Eudaimonic    +6/-2      Thought Control +6/-3
+;
+; Every Future Society is +6 gross where nothing else in the game clears +4, and
+; Eudaimonic at +6/-2 is the best ratio on the table. That is not three options
+; balanced against each other -- it is a row that is strictly better than the
+; row above it, which is why the late game feels the same whichever one you take.
+; They are not a choice, they are a reward for surviving to the tech.
+;
+; So the fix is not to shuffle them against one another. It is to price the whole
+; row at the +4/-2 the rest of the game is written in, and to make the penalty
+; land somewhere that still hurts by the time you get there.
+;
+;
+; WHAT CHANGES
+;
+; Cybernetic loses ++PLANET and takes --GROWTH.
+;     ---POLICE was close to free: by Digital Sentience the police penalty is
+;     bought off with facilities you already have. A growth penalty cannot be
+;     bought off, and it is the right one thematically -- a society that has
+;     handed itself to its machines optimises, it does not breed. Losing
+;     ++PLANET is the point of the edit: Green stops being a stepping stone on
+;     the way to a strictly better version of itself.
+;
+; Eudaimonic loses ++INDUSTRY and takes --POLICE alongside --MORALE.
+;     The outlier of the whole table, and the least defensible: abundance was
+;     paying one pip for three. A people who have everything make neither
+;     soldiers nor policemen; now it is a peace build with a real cost rather
+;     than a free +6.
+;
+; Thought Control loses ++PROBE and --SUPPORT is softened to two pips, with
+; --RESEARCH added.
+;     POLICE and MORALE are its identity and both stay. What it should cost is
+;     the thing total obedience actually costs, which is inquiry -- and that is
+;     a penalty no facility repeals.
+;
+; Every row is now +4/-2, matching Police State, Democratic, Green and Power.
+;
+;
+; WHAT DOES NOT CHANGE, AND CANNOT
+;
+; The eleven effect COLUMNS (ECONOMY, EFFIC, SUPPORT, TALENT, MORALE, POLICE,
+; GROWTH, PLANET, PROBE, INDUSTRY, RESEARCH) are hardcoded engine semantics.
+; Thinker's own AI reads them directly -- mod_social_ai() in faction.cpp reasons
+; about SE_GROWTH against GrowthPopBoom, projects pop booms per base, and weighs
+; defence off p->defense_modifier. You can rename what a column is CALLED; you
+; cannot change what it MEANS. The #SOC* blocks below the table are labels for
+; integer levels whose behaviour is compiled in, not a place to redefine the
+; rungs.
+;
+; The rows are the opposite: entirely open, and the AI comes along for free,
+; because it evaluates the resulting effect vector rather than the name. That
+; asymmetry is the whole reason this edit is three lines of text and no code.
+;
+;
+; THE REPLACEMENT ROWS
+;
+; install.sh replaces the three lines in the installed alphax.txt's #SOCIO block
+; that begin with these names. Nothing else in the file is touched.
+
+Cybernetic,      DigSent, ++EFFIC,  ++RESEARCH, --GROWTH, --POLICE
+Eudaimonic,      Eudaim,  ++GROWTH, ++ECONOMY,  --MORALE, --POLICE
+Thought Control, WillPow, ++POLICE, ++MORALE,   --SUPPORT, --RESEARCH

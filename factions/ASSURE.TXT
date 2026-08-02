@@ -1,0 +1,146 @@
+;
+; Sid Meier's ALPHA CENTAURI
+;
+; FACTION FILE: Vashti's Assurance
+;
+; A Chiron Rising faction. Drop this file in the game directory alongside
+; the stock faction files; the faction picker reads the directory.
+;
+; THE ARGUMENT: every other faction on Planet announces what it is. The
+; Assurance holds that a position stated is a position surrendered, and that
+; what actually binds people is not sincerity but consideration — the signed
+; thing, the thing with a price on it. So it lies constantly and breaks
+; nothing. Its word is worthless; its signature is good. It argues that
+; everyone else confuses the two out of sentimentality, and pays for it.
+;
+; MECHANICALLY the deception is NOT in this file — it is in the diplomacy
+; layer, where Vashti's persona carries a directive to overstate her strength
+; and understate her need. That is the whole point of the faction: a scripted
+; lie is read once and recognised forever, and a generated one has to be
+; weighed against the map every single time. What is in this file is a
+; negotiator: rich, superb at the Council, and unable to hold a population
+; that is never told anything true.
+;
+; The lie is bounded by the engine, not by good intentions. Chiron decides the
+; WORDS and never the OUTCOME, so a claim never changes what a pact does; and
+; the mandatory-value check discards any reply that misstates the technology
+; or the credits actually on the table. She can only lie about herself.
+;
+; NOTE ON THE STATS: `VOTES, 2` is the Peacekeepers' own value, so that one is
+; known good. `---POLICE` is the untested number here — it is meant to be a
+; real cost and may be too punishing next to `+ECONOMY`. If drone riots make
+; the faction unplayable rather than difficult, `--POLICE` is the fallback and
+; costs nothing but a degree of the argument.
+;
+
+#ASSURE
+Vashti's Assurance, The Assurance, Assurance, F, 1, Vashti, F, 0, 1, 0, 1, 0,
+  TECH, Psych, SOCIAL, +ECONOMY, SOCIAL, +PROBE, SOCIAL, ---POLICE, VOTES, 2, COMMERCE, 1
+  Economics, Free Market, ECONOMY
+  Values, Wealth, nil
+  Assured, Vashti,
+  Idrissa, Toft, Toft's Guarantee
+  Underwriter, warm, unhurried, disarming, unflappable,
+  Smiling Counterparty
+  price a thing honestly and argue about everything else
+  to hold the balance of every bargain on this world
+  saying whatever the room requires and signing whatever it does not
+  saying whatever the room requires and signing whatever it does not
+  treat every conversation as a negotiation you have already won
+  selling assurances against harms you arrange
+  selling assurances against harms you arrange
+  never once answering the question that was asked
+  favourable terms, M2
+  quiet indemnities, M2
+  goodwill instruments, M2
+  premium, M1
+  making certainty into something that can be bought
+  my Office of Standing Guarantees
+  the Schedule of Undisclosed Positions
+
+#BASES
+Assurance Hall
+Good Faith
+Consideration
+The Signed Page
+Surety
+Face Value
+Vashti's Word
+Escrow
+The Standing Offer
+Indemnity
+The Handshake
+Counterparty
+Fine Print
+Warrant
+The Kind Answer
+Collateral
+Due Diligence
+The Second Face
+Bond
+Quiet Premium
+The Agreed Version
+Recital
+Toft's Guarantee
+The Unread Clause
+Terms
+Without Prejudice
+#END
+
+#WATERBASES
+Deep Water Terms
+The Floating Bond
+Salvage Rights
+Underwriter's Reach
+The Quiet Harbour
+Demurrage
+Safe Berth
+The Sealed Hold
+#END
+
+#BLURB
+I have never once lied in a contract, and I have never once told the truth
+in a conversation. Everyone I deal with learns the difference eventually.
+Most of them learn it late, and at a price we had already agreed on.
+^
+^        -- Underwriter Yael Vashti,
+^           "The Schedule of Undisclosed Positions"
+
+#DATALINKS1
+^LEADER: {Yael Vashti}
+^BACKGROUND: {Unity Mission Contracts, Chief Negotiator}
+^AGENDA: {Free Market; commerce}
+^TECH: {Social Psych}
+^
+
+#DATALINKS2
+^+1 ECONOMY: {Every exchange is priced in her favour}
+^+1 PROBE: {Knows what you will accept before you offer it}
+^-3 POLICE: {A people told nothing true cannot be ordered}
+^Double votes in the Planetary Council: {A vote is a transaction, not a belief}
+^+1 COMMERCE
+
+#FACTIONTRUCE
+#xs 440
+#caption $CAPTION7
+"You have my sympathy, $TITLE0 $NAME1 — this has gone worse for
+you than either of us projected, and I say that with reserves I
+have not had to touch. Blood Truce. I will even let you call it
+your idea."
+
+"Call it what you like. Stop shooting."
+"Your reserves are a rumour you started, $NAME3."
+
+#FACTIONTREATY
+#xs 440
+#caption $CAPTION7
+"A Treaty of Friendship, then. You will want to know that I mean
+it — I don't, particularly, and it will hold anyway, because I
+have signed it. That is the only assurance I have ever offered
+anyone, and it is the only one that has never failed."
+
+"Sign it, then. I will hold you to the paper."
+"I will not put my name beside yours on anything."
+
+
+# ; This line must remain at end of file

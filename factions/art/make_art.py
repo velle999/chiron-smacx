@@ -73,6 +73,17 @@ THEMES = {
         "accent": (196, 122, 96),
         "glyph": "forecast",
     },
+    # Wine and gold: expensive, and not quite showing you its face. Morgan is
+    # the other faction that deals in money, so this deliberately reads as a
+    # private office rather than a corporation.
+    "assure": {
+        "name": "VASHTI'S ASSURANCE",
+        "motto": "MY SIGNATURE IS GOOD",
+        "bg": (22, 16, 18),
+        "ink": (216, 204, 178),
+        "accent": (188, 150, 74),
+        "glyph": "seal",
+    },
 }
 
 
@@ -116,6 +127,51 @@ def draw_forecast(d, cx, cy, r, ink, accent):
     d.line([ox, oy - rr * 3, ox, oy - rr], fill=accent, width=max(1, r // 70))
 
 
+def draw_seal(d, cx, cy, r, ink, accent):
+    """The signature line unbroken, and everything said above it in pieces.
+
+    The faction's whole claim, drawn: what is written on the line is
+    continuous and load-bearing; what is spoken over it is discontinuous and
+    does not join up. The seal sits on the line, not above it.
+    """
+    import math
+
+    baseline = cy + r * 0.52
+
+    # The line itself: solid, full width, the heaviest stroke in the emblem.
+    d.line([cx - r, baseline, cx + r, baseline], fill=ink, width=max(3, r // 16))
+
+    # The talk: a hand that crosses the line and never joins up. Amplitudes are
+    # irregular on purpose -- an even sine reads as a waveform, and the point is
+    # a signature, so the loops have to be uneven the way a written one is.
+    loops = [0.62, -0.30, 0.86, -0.22, 0.54, -0.38, 0.30]
+    n = 84
+    prev = None
+    for i in range(n + 1):
+        t = i / n
+        x = cx - r * 0.94 + (r * 1.78) * t
+        # Interpolate between the loop peaks rather than sampling one sine.
+        u = t * (len(loops) - 1)
+        k = min(int(u), len(loops) - 2)
+        f = u - k
+        # Cosine ease, not linear: interpolating straight between the peaks
+        # gave sharp corners, and a zigzag reads as a chart. A hand curves.
+        f = (1 - math.cos(f * math.pi)) / 2
+        amp = loops[k] * (1 - f) + loops[k + 1] * f
+        # Sits ON the baseline: a signature is written across the rule, and the
+        # earlier version floating above it read as an unrelated graph.
+        y = baseline - r * 0.34 - amp * r * 0.42
+        if prev and i % 4:            # three strokes drawn, every fourth dropped
+            d.line([prev[0], prev[1], x, y], fill=ink, width=max(2, r // 30))
+        prev = (x, y)
+
+    # The seal: pressed onto the line, and the only closed shape in the mark.
+    sr = max(4, int(r * 0.19))
+    sx, sy = cx + r * 0.78, baseline
+    d.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], fill=accent)
+    d.ellipse([sx - sr, sy - sr, sx + sr, sy + sr], outline=ink, width=1)
+
+
 def emblem(theme, size):
     w, h = size
     im = Image.new("RGB", size, theme["bg"])
@@ -129,7 +185,7 @@ def emblem(theme, size):
 
     r = int(min(w, h) * (0.26 if small else 0.22))
     cx, cy = w // 2, int(h * 0.40)
-    {"bowl": draw_bowl, "forecast": draw_forecast}[theme["glyph"]](
+    {"bowl": draw_bowl, "forecast": draw_forecast, "seal": draw_seal}[theme["glyph"]](
         d, cx, cy, r, theme["ink"], theme["accent"])
 
     # wordmark, drawn as a rule + text so it reads as a plate rather than a title

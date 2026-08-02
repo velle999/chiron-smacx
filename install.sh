@@ -10,6 +10,33 @@ set -euo pipefail
 DEFAULT_GAME="$HOME/.local/share/Steam/steamapps/common/Sid Meier's Alpha Centauri"
 GAME="${GAME:-$DEFAULT_GAME}"
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# The Future Society repricing is the only part of this mod that changes the
+# RULES rather than the words, so it is opt-in and stays that way. It also
+# changes a game already in progress -- a save records which social model you
+# chose, not what that model does -- and silently rebalancing someone's turn-200
+# game is not a thing an installer should do without being asked.
+#
+# Not passing the flag reverts it: alphax.txt is reinstalled from docs/ on every
+# run, so a plain ./install.sh puts the stock table back.
+SE_REBALANCE=0
+for arg in "$@"; do
+    case "$arg" in
+        --se-rebalance) SE_REBALANCE=1 ;;
+        -h|--help)
+            echo "usage: install.sh [--se-rebalance]"
+            echo
+            echo "  --se-rebalance  also apply the optional Future Society"
+            echo "                  repricing (see se-rebalance.txt). Off by"
+            echo "                  default; changes games already in progress."
+            exit 0
+            ;;
+        *)
+            echo "error: unknown option $arg (try --help)" >&2
+            exit 1
+            ;;
+    esac
+done
 # The GCC 14 build is the one that runs. Arch's mingw-w64 (GCC 16, UCRT-native)
 # produces a DLL that imports msvcrt.dll yet still dies at startup with
 # "Unable to allocate draw-buffer". See docs/toolchain.md.
@@ -68,6 +95,12 @@ for f in modmenu.txt alphax.txt; do
         echo "installed $f (Thinker's, matching the DLL)"
     fi
 done
+# After alphax.txt is in place, never before: the patch edits the installed copy
+# and the loop above overwrites it.
+if [ "$SE_REBALANCE" = 1 ]; then
+    python3 "$SRC/apply-se-rebalance.py" "$GAME/alphax.txt"
+fi
+
 for d in basenames smac_mod german; do
     if [ -d "$DOCS/$d" ]; then
         mkdir -p "$GAME/$d"

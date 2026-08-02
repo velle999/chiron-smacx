@@ -1,0 +1,71 @@
+#BASES
+Assurance Hall
+Good Faith
+Consideration
+The Signed Page
+Surety
+Face Value
+Vashti's Word
+Escrow
+The Standing Offer
+Indemnity
+The Handshake
+Counterparty
+Fine Print
+Warrant
+The Kind Answer
+Collateral
+Due Diligence
+The Second Face
+Bond
+Quiet Premium
+The Agreed Version
+Recital
+Toft's Guarantee
+The Unread Clause
+Terms
+Without Prejudice
+The Better Offer
+Covenant
+Reassurance
+The Long Position
+Goodwill
+Attestation
+The Favourable Reading
+Undertaking
+Discretion
+The Sealed Envelope
+Preference
+Assignable
+The Quiet Word
+Remedy
+Franchise
+The Second Opinion
+Underwriting
+Waiver
+The Comfortable Answer
+Novation
+Ledger House
+The Better Half of It
+Tender
+Subrogation
+#END
+
+#WATERBASES
+Deep Water Terms
+The Floating Bond
+Salvage Rights
+Underwriter's Reach
+The Quiet Harbour
+Demurrage
+Safe Berth
+The Sealed Hold
+General Average
+The Long Voyage
+Charterparty
+Deepwater Indemnity
+The Named Peril
+Lay Days
+The Sheltered Anchorage
+Total Loss
+#END
