@@ -409,6 +409,16 @@ them, for up to six exchanges. Then you are back at the same menu with every
 normal option still there. The mod's own popups carry the same **Say something**
 option.
 
+**And every dialog box a leader speaks in gets the same line on the end** —
+*"A word, before you go . . ."*, after whatever buttons the box already had.
+That is where the remarks worth answering actually are: an accusation, a boast
+about a prototype, a warning about the company you keep. Most of those popups
+are an OK and nothing else, so until now the only reply available was to press
+OK. The extra button is written into the block alongside the generated line, and
+its index is caught before the game sees it, so a box that was a *decision* is
+still that decision when the conversation ends — you are put back in front of
+the same buttons.
+
 > **You:** Then why were they in my territory at all, Colonel?
 > **Santiago:** You question my intentions, Lady Skye? I have not trespassed,
 > nor do I steal. My teams were here to hunt, as per our accord. Strength
