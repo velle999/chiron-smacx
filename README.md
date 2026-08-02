@@ -402,10 +402,12 @@ two or three options someone else wrote — which is most of why a leader's rema
 still reads as scenery even when the words are new. You cannot reply to scenery,
 so you stop reading it.
 
-So when a leader speaks in one of the mod's own popups, there is a **Say
-something** option. It opens a text field, you type whatever you like, and they
-answer that — in character, with the history between you still in front of them,
-for up to six exchanges before they close the channel.
+So the ordinary diplomacy list has one more line on the end — *"A word with you,
+before we finish . . ."*. It opens a text field, you type whatever you like, and
+they answer that — in character, with the history between you still in front of
+them, for up to six exchanges. Then you are back at the same menu with every
+normal option still there. The mod's own popups carry the same **Say something**
+option.
 
 > **You:** Then why were they in my territory at all, Colonel?
 > **Santiago:** You question my intentions, Lady Skye? I have not trespassed,
