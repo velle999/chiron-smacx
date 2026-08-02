@@ -36,7 +36,7 @@ no model at all.
 | **Leader memory** | What leaders say follows from what has actually passed between you — the wars, the broken promises, the debts. See [Leader memory](#leader-memory) |
 | **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
 | **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
-| **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
+| **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war — and answer for your own. See [Probe protests](#probe-protests) |
 | **The menu** | `Alt+M` — whether the mod is actually working, a connection test, and the switches without a restart. See [The menu](#the-menu) |
 | **Three new factions** | Kaya's Sufficiency, the Cassandra Directorate and Vashti's Assurance — playable, with artwork, voices and base-name pools. No model required. See [Factions](#factions) |
 
@@ -404,6 +404,12 @@ Now a theft is noticed at the start of your turn and you can demand they stop.
 They answer in character, and if they agree **their probe teams actually leave
 you alone** for 30 turns.
 
+You can also raise it yourself. The turn-start prompt is a one-shot — say
+nothing and the grievance is gone until they rob you again — so the same
+confrontation is offered at the top of the diplomacy conversation whenever there
+is something unresolved to raise. Once you have raised it, either way, it stops
+being offered until the 30 turns lapse.
+
 > *"Your research is valuable. But my soldiers' lives are more so. I will not
 > risk them for it. I am a warrior, not a thief. I respect your strength. I will
 > call my teams off."* — Santiago, agreeing
@@ -435,6 +441,29 @@ same 30-turn clock.
 > checks `DIPLO_PACT` and **not** `DIPLO_TREATY`. An AI pact partner already
 > declines to probe you unless the probe was waypointed onto the base — it is
 > **treaty** partners that help themselves freely.
+
+### It runs both ways
+
+Probe someone yourself and their leader will catch you at it and make the same
+demand of you, in their own voice. You answer — and **your word binds exactly as
+theirs does**, through the same field and the same gate. A promise only the AI
+can be held to is a courtesy, not a mechanic.
+
+> *"Lady Skye, your probes are a violation of my business, a waste of resources,
+> and an affront to me as a fellow CEO. Cease them at once."* — Morgan, with no
+> treaty between you
+
+Agree and your probe teams stand down against them for 30 turns. You can still
+break your word — a promise you cannot break is a lock rather than a decision —
+but you are asked to confirm it, and it is recorded in the engine's own
+double-cross counters, which means the leader raises it unprompted the next time
+you speak. Refuse the demand outright and **they** get the grounds for war, on
+the same terms and the same clock you would have had.
+
+The direction matters here and is easy to invert:
+`Factions[victim].diplo_stolen_techs[thief]` is the shape of the field
+(`probe.cpp:1233`), so your own row counts what was done to you and everyone
+else's row, read at your column, counts what you did to them.
 
 The warning is stored in a block of `MFaction` the engine already saves, so it
 survives save/load with no save format of ours, and `sizeof(MFaction) == 1436`
