@@ -404,11 +404,24 @@ Now a theft is noticed at the start of your turn and you can demand they stop.
 They answer in character, and if they agree **their probe teams actually leave
 you alone** for 30 turns.
 
-You can also raise it yourself. The turn-start prompt is a one-shot — say
-nothing and the grievance is gone until they rob you again — so the same
-confrontation is offered at the top of the diplomacy conversation whenever there
-is something unresolved to raise. Once you have raised it, either way, it stops
-being offered until the 30 turns lapse.
+You can also raise it yourself, two ways.
+
+**When you catch one in the act.** Intercept a probe team and the stock choice
+is shrug, hand them back, or kill them — and killing them starts a war, which is
+the same bind one step earlier in the sequence. There is now a fourth option:
+*return them, and put their leader on the commlink*. That is the moment you hold
+both the proof and the leverage, and it does not require you to have been robbed
+first — a theft only registers when the operation **completes**, so a probe team
+stopped at the border is invisible to the turn-start check by design.
+
+**In diplomacy.** The turn-start prompt is a one-shot — say nothing and the
+grievance is gone until they rob you again — so the same confrontation is
+offered at the top of the diplomacy conversation whenever there is something
+unresolved to raise. Once you have raised it, either way, it stops being offered
+until the 30 turns lapse.
+
+> A vendetta cancels all of this on purpose. Once you are at war there is
+> nothing left to threaten, so nothing is offered.
 
 > *"Your research is valuable. But my soldiers' lives are more so. I will not
 > risk them for it. I am a warrior, not a thief. I respect your strength. I will
