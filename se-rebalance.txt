@@ -32,29 +32,58 @@
 ; land somewhere that still hurts by the time you get there.
 ;
 ;
+; FIRST, THE THING THAT CHANGES THE ARITHMETIC
+;
+; TWO OF THE THREE PENALTIES ARE NOT PAID AT ALL. social_calc() in faction.cpp
+; zeroes EVERY negative on a Future Society model when the faction holds one
+; project:
+;
+;     Cybernetic       + Network Backbone  -> all negatives become 0
+;     Thought Control  + Cloning Vats      -> all negatives become 0
+;     Eudaimonic                           -> no such clause; it always pays
+;
+; So the stock row is worse than the pip count suggests. Cybernetic and Thought
+; Control are +6/0 for whoever lands the project, and since a project is
+; singular, everyone else keeps paying. Eudaimonic's +6/-2 is not the outlier it
+; looks like -- it is the only one of the three whose cost is real, which is a
+; reason to price it GENTLY, not to punish it further.
+;
+; Note the clause zeroes any negative, not a specific one. Moving a penalty from
+; POLICE to GROWTH does not make it unbuyable; it changes what you lose until
+; the project lands, and for most factions that is the whole game.
+;
+;
 ; WHAT CHANGES
 ;
-; Cybernetic loses ++PLANET and takes --GROWTH.
-;     ---POLICE was close to free: by Digital Sentience the police penalty is
-;     bought off with facilities you already have. A growth penalty cannot be
-;     bought off, and it is the right one thematically -- a society that has
-;     handed itself to its machines optimises, it does not breed. Losing
-;     ++PLANET is the point of the edit: Green stops being a stepping stone on
-;     the way to a strictly better version of itself.
+; Cybernetic loses ++PLANET and takes --GROWTH beside --POLICE.
+;     Losing ++PLANET is the point of the edit: Green stops being a stepping
+;     stone on the way to a strictly better version of itself. --GROWTH is the
+;     right cost thematically -- a society that has handed itself to its
+;     machines optimises, it does not breed -- and it bites for every faction
+;     that never builds the Backbone.
 ;
-; Eudaimonic loses ++INDUSTRY and takes --POLICE alongside --MORALE.
-;     The outlier of the whole table, and the least defensible: abundance was
-;     paying one pip for three. A people who have everything make neither
-;     soldiers nor policemen; now it is a peace build with a real cost rather
-;     than a free +6.
+; Thought Control loses ++PROBE, --SUPPORT softens to two pips, --RESEARCH is
+; added.
+;     POLICE and MORALE are its identity and both stay. What total obedience
+;     should cost is inquiry. Cloning Vats still voids both, as it always did.
 ;
-; Thought Control loses ++PROBE and --SUPPORT is softened to two pips, with
-; --RESEARCH added.
-;     POLICE and MORALE are its identity and both stay. What it should cost is
-;     the thing total obedience actually costs, which is inquiry -- and that is
-;     a penalty no facility repeals.
+; Eudaimonic loses ++INDUSTRY and keeps --MORALE alone.
+;     ONE penalty, not two, precisely because it is the one that cannot be
+;     voided. Abundance was paying a single pip for three; now it pays a single
+;     pip for two, permanently, which is a fairer deal than the other two get
+;     the moment their project completes.
 ;
-; Every row is now +4/-2, matching Police State, Democratic, Green and Power.
+; So the row becomes:
+;
+;     Cybernetic       +4/-4    -- voided entirely by Network Backbone
+;     Eudaimonic       +4/-2    -- permanent, and the standard rate
+;     Thought Control  +4/-4    -- voided entirely by Cloning Vats
+;
+; against +4/-2 for Police State, Democratic, Green and Power. Gross is now the
+; same as the rest of the table for all three; the two with an escape hatch pay
+; double until they reach it, and the one with no escape pays exactly what every
+; other row pays, forever. The row stops being strictly better than the row
+; above it.
 ;
 ;
 ; WHAT DOES NOT CHANGE, AND CANNOT
@@ -79,5 +108,5 @@
 ; that begin with these names. Nothing else in the file is touched.
 
 Cybernetic,      DigSent, ++EFFIC,  ++RESEARCH, --GROWTH, --POLICE
-Eudaimonic,      Eudaim,  ++GROWTH, ++ECONOMY,  --MORALE, --POLICE
+Eudaimonic,      Eudaim,  ++GROWTH, ++ECONOMY,  --MORALE
 Thought Control, WillPow, ++POLICE, ++MORALE,   --SUPPORT, --RESEARCH

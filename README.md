@@ -502,6 +502,12 @@ are in [`factions/README.md`](factions/README.md).
 **Optional, off by default, and the only part of this pack that changes the rules
 rather than the words.**
 
+**`Alt+M` → `Future Society repricing...`** toggles it live, shows the three rows
+as the game currently holds them, and names the two projects that void the
+penalties. That is session-only — the next launch reads `alphax.txt` again.
+
+To make it permanent:
+
 ```bash
 ./install.sh --se-rebalance     # apply
 ./install.sh                    # a plain reinstall puts the stock table back
@@ -522,11 +528,36 @@ balanced against each other — it is a row strictly better than the row above i
 which is why the late game feels much the same whichever one you take. They are
 not a choice, they are a reward for surviving to the tech.
 
-So the fix is not to shuffle them against one another. It is to price the whole
-row at the +4/-2 the rest of the game is written in, and to move the penalty
-somewhere that still bites by the time you get there — Cybernetic's `---POLICE`
-is nearly free once Digital Sentience has arrived, where `--GROWTH` cannot be
-bought off. Full reasoning is in [`se-rebalance.txt`](se-rebalance.txt).
+**And the pip count understates it, because two of the three penalties are never
+paid.** `social_calc()` zeroes *every* negative on a Future Society model when
+the faction holds one project:
+
+| | |
+|---|---|
+| Cybernetic + **Network Backbone** | all negatives become 0 |
+| Thought Control + **Cloning Vats** | all negatives become 0 |
+| Eudaimonic | no such clause — it always pays |
+
+So Cybernetic and Thought Control are **+6/0** for whoever lands the project.
+That inverts the obvious reading: Eudaimonic looks like the outlier and is
+actually the only one of the three whose cost is real — a reason to price it
+gently rather than to punish it.
+
+So the fix is not to shuffle them against one another. Gross comes down to +4
+for all three, and the penalties follow from who can escape them:
+
+| | | |
+|---|---|---|
+| **Cybernetic** | +4/-4 | voided entirely by Network Backbone |
+| **Eudaimonic** | +4/-2 | permanent, and the standard rate |
+| **Thought Control** | +4/-4 | voided entirely by Cloning Vats |
+
+The two with an escape hatch pay double until they reach it; the one with no
+escape pays exactly what every other row pays, forever. Note the clause zeroes
+*any* negative rather than a nominated one, so relocating a penalty does not
+make it unbuyable — it changes what you lose until the project lands, and since
+a project is singular, for everyone else that is the whole game. Full reasoning
+is in [`se-rebalance.txt`](se-rebalance.txt).
 
 > **It changes a game already in progress.** A save records which social model
 > you picked, not what that model does, so a running game silently takes the new
