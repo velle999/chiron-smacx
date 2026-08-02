@@ -25,8 +25,8 @@ onto induktio. It is deliberately *not* a submodule; clone it inside this one.
 
 ## What the mod adds
 
-Six things. The five generated ones all fall back silently to stock behaviour if
-the bridge is down or a reply is unusable — there is no failure mode where a
+Seven things. The five generated ones all fall back silently to stock behaviour
+if the bridge is down or a reply is unusable — there is no failure mode where a
 dialogue box comes up empty. The factions are ordinary data files and work with
 no model at all.
 
@@ -37,7 +37,12 @@ no model at all.
 | **Base names** | New bases are named from the faction's own culture instead of a fixed list of 75. See [Base names](#base-names) |
 | **Planetnet** | `Alt+N` — an in-fiction wire dispatch on what changed since the last bulletin. See [Planetnet](#planetnet) |
 | **Probe protests** | Object when a faction runs probe teams against you, instead of choosing between robbery and war. See [Probe protests](#probe-protests) |
-| **Two new factions** | Kaya's Sufficiency and the Cassandra Directorate — playable, with artwork, voices and base-name pools. No model required. See [Factions](#factions) |
+| **The menu** | `Alt+M` — whether the mod is actually working, a connection test, and the switches without a restart. See [The menu](#the-menu) |
+| **Three new factions** | Kaya's Sufficiency, the Cassandra Directorate and Vashti's Assurance — playable, with artwork, voices and base-name pools. No model required. See [Factions](#factions) |
+
+There is also an **optional** rules change, off by default and the only part of
+the pack that touches balance rather than words: see
+[Future Society repricing](#future-society-repricing).
 
 ## Quickstart
 
@@ -88,6 +93,7 @@ never loaded and nothing below applies — go to
 |---|---|
 | `Ctrl+F4` | Mod version — the one-second check that Chiron is live |
 | `Alt+T` | Thinker's options |
+| `Alt+M` | **Chiron's menu** — is the backend up, test it, throw the switches |
 | `Alt+N` | **Planetnet dispatch** — what changed since you last looked |
 
 ## What this does and does not change
@@ -318,8 +324,70 @@ When nothing has changed the model is not called at all; you get *"No
 developments since the last bulletin."* Asked to report a quiet turn it invented
 a base count that was never true.
 
+**Every number in a dispatch is checked against the numbers we handed over.**
+The deltas above stopped the model inventing *events*. They did not stop it
+inventing *figures*, which is the more dangerous of the two, because a figure
+looks like something a wire service would know. A bulletin whose facts were base
+counts and nothing else reported *"a 24-hour population of 76,879, with 51% under
+agri, 32% industrial, and 17% urban"* — no population is ever passed to the
+model, and the rule forbidding percentages was already in the prompt, last and on
+its own line, which is the position a small model weighs most. It read the rule
+and wrote the percentages anyway.
+
+So it is enforced rather than requested. Digits are compared as whole tokens
+(`1` is not satisfied by the `19` in the standings, commas stripped both sides)
+and a `%` is refused outright. A rejected dispatch is retried once — the failure
+is a sampling accident, not a standing refusal — and then falls back to the facts
+themselves, flattened out of their bullets. Dry and true beats fluent and
+invented, and the box is never empty.
+
+> **Where a prompt rule protects a fact the player could act on, enforce it in
+> code.** A rule is a request.
+
+Trailing fragments are dropped either way, so a dispatch ends on a full stop
+rather than mid-word when the token ceiling lands badly.
+
 > Rendered through a `#CHIRONNEWS` block in `modmenu.txt` — one more reason that
 > file has to be the copy `install.sh` ships.
+
+## The menu
+
+`Alt+M` in the map window, beside Thinker's `Alt+T`.
+
+```
+Backend: bridge at 127.0.0.1:11436.
+Working. Last reply 1.9s, 42 calls, 0 failed.
+
+  Close.
+  Planetnet dispatch.
+  Test the connection now.
+  Generated dialogue: on.
+  Base names from faction culture: on.
+  Object to probe teams: on.
+```
+
+**The status line is the reason this exists.** Every failure path in the mod
+falls back to the game's own text — deliberately, because a dialogue box coming
+up empty would be worse than a canned line. The cost of that is a broken install
+and a working one looking identical from the seat: vanilla dialogue is both "the
+bridge is down" and "the mod is not installed", and nothing on screen separates
+them. The player's only evidence is a log file they have no reason to know
+exists.
+
+A dead backend says so, and says *why* — the reason is recorded at each failure
+site rather than inferred from a return code, because "nothing is listening" and
+"it answered with no text" are the same failure to a caller and completely
+different problems to whoever has to fix it.
+
+**The connection test prints the reply**, not just a verdict. The failure it
+catches most often is not a dead server but the *wrong* one: point `backend=` at
+`llamacpp` while `ollama` is what is actually listening and the request succeeds,
+the parser finds no key it recognises, and every line goes quietly vanilla. A
+visible `ready` proves socket, request shape and reply key at once.
+
+The three toggles are the session's, not the file's. `chiron.ini` stays the thing
+that decides how the game starts; a menu that silently rewrote a config you also
+hand-edit is a good way to lose your comments.
 
 ## Probe protests
 
@@ -369,13 +437,30 @@ still holds. Set `probe_protests=0` in `chiron.ini` to turn the whole thing off.
 
 ## Factions
 
-Two new playable factions, in `factions/`. Unlike everything above they are
-ordinary SMACX data files — no bridge, no model, no DLL involvement.
+Three new playable factions, in `factions/`. Two of them are ordinary SMACX data
+files — no bridge, no model, no DLL involvement. The third is the exception, and
+deliberately so.
 
 | | |
 |---|---|
 | **Kaya's Sufficiency** (`SUFFIC.TXT`) | The degrowth argument. `IMPUNITY, Eudaimonic` and a `PENALTY` on Free Market |
 | **The Cassandra Directorate** (`ORACLE.TXT`) | The information argument — not stealing secrets, knowing anyway and being disbelieved for it. `VOTES, 0` and `COMMFREQ` |
+| **Vashti's Assurance** (`ASSURE.TXT`) | The argument that a position stated is a position surrendered. Lies constantly, breaks nothing. `VOTES, 2`, `COMMERCE` and `---POLICE` |
+
+**Vashti is the one faction here that needs the model.** Her word is worthless
+and her signature is good, and that only works if the lie is written fresh: a
+scripted lie is read once and recognised forever, so by the second playthrough
+the faction is just a faction with a tell. A generated one has to be weighed
+against the map every single time.
+
+Both bounds were already in the mod before she was. **Chiron decides the words
+and never the outcome**, so nothing she claims can change what a pact actually
+does; and the mandatory-value check discards any reply that misstates the
+technology or the credits on the table. The deception is therefore *structurally*
+confined to her account of herself — she overstates her strength and understates
+her need, and cannot lie about the deal. If you want her switched off, she
+degrades to an ordinary merchant faction: turn generated dialogue off in
+[the menu](#the-menu) and she simply speaks the stock lines.
 
 Each ships a leader portrait and insignia, a `.flc` animation, a voice, and an
 expanded base-name pool that Chiron few-shots from when it names new bases.
@@ -397,14 +482,67 @@ The vanilla ini and `alphax.txt` are kept in `_vanilla_backup/`.
 
 > **`<faction>.pcx` is a sprite atlas, not a portrait.** Treating it as a single
 > image is what made new bases render invisible — the file also carries the base
-> and unit sprites. `art/repaint_atlas.py` replaces only the leader portrait and
-> insignia within a donor atlas, which is why the Sufficiency and the Directorate
-> no longer wear Deirdre's and Zakharov's faces.
+> and unit sprites. So a new faction *donors* a stock atlas
+> (`make_art.py <stem> --donor BELIEVE`) and `art/repaint_atlas.py` replaces only
+> the leader portrait and insignia inside it, which is why the three no longer
+> wear Deirdre's, Zakharov's and Miriam's faces. **The donor also decides the
+> faction's in-game colour**, so pick one that is not in the active seven.
+>
+> Known gap in all three: `repaint_atlas.py` handles the council and diplomacy
+> regions, and the DATALINKS portrait is not one of them — so on that one screen
+> each faction still wears its donor's face.
 
-Design notes — why these two arguments and not the obvious ones, which keywords
-were still unclaimed across all fourteen shipped factions, and why "being right
-and disbelieved" has to live in the generated persona rather than in
-`FACTION.TXT` — are in [`factions/README.md`](factions/README.md).
+Design notes — why these arguments and not the obvious ones, which keywords were
+still unclaimed across all fourteen shipped factions, and why "being right and
+disbelieved" has to live in the generated persona rather than in `FACTION.TXT` —
+are in [`factions/README.md`](factions/README.md).
+
+## Future Society repricing
+
+**Optional, off by default, and the only part of this pack that changes the rules
+rather than the words.**
+
+```bash
+./install.sh --se-rebalance     # apply
+./install.sh                    # a plain reinstall puts the stock table back
+```
+
+Count the ± pips on every row of the stock `#SOCIO` table:
+
+| | | |
+|---|---|---|
+| Police State +4/-2 | Free Market +2/-8 | Power +4/-2 |
+| Democratic +4/-2 | Planned +3/-2 | Knowledge +3/-2 |
+| Fundamentalist +3/-2 | Green +4/-2 | Wealth +2/-2 |
+| **Cybernetic +6/-3** | **Eudaimonic +6/-2** | **Thought Control +6/-3** |
+
+Every Future Society is **+6 gross** where nothing else in the game clears +4,
+and Eudaimonic at +6/-2 is the best ratio on the board. That is not three options
+balanced against each other — it is a row strictly better than the row above it,
+which is why the late game feels much the same whichever one you take. They are
+not a choice, they are a reward for surviving to the tech.
+
+So the fix is not to shuffle them against one another. It is to price the whole
+row at the +4/-2 the rest of the game is written in, and to move the penalty
+somewhere that still bites by the time you get there — Cybernetic's `---POLICE`
+is nearly free once Digital Sentience has arrived, where `--GROWTH` cannot be
+bought off. Full reasoning is in [`se-rebalance.txt`](se-rebalance.txt).
+
+> **It changes a game already in progress.** A save records which social model
+> you picked, not what that model does, so a running game silently takes the new
+> effects the next time it loads. Finish a game first, or apply it and accept
+> that. This is why it is not on by default.
+
+**Rows are moddable; columns are not.** The eleven effect columns are hardcoded
+engine semantics — Thinker's `mod_social_ai()` reasons about `SE_GROWTH` against
+`GrowthPopBoom` and projects pop booms per base directly off them — so you can
+rename what a column is *called* and never change what it *means*. The `#SOC*`
+blocks below the table are labels for integer levels whose behaviour is compiled
+in, not a place to redefine the rungs.
+
+The rows are the opposite: entirely open, and **the AI comes along for free**,
+because it evaluates the resulting effect vector rather than the name. That
+asymmetry is the whole reason this edit is three lines of text and no code.
 
 ## Install
 
@@ -563,6 +701,11 @@ Usually the mod is working and the backend is dead. Vanilla reuses one block per
 label, so all seven factions delivering an identical demand is the signature of
 the fallback path doing its job.
 
+**Press `Alt+M` first.** It answers this question directly — whether the backend
+is up, and if not, why — and its connection test proves the whole path in one
+keystroke. Everything below is what to do once the menu has told you which
+problem you have, or if the mod is too dead to open a menu.
+
 **Rejections are logged to `chiron.txt`, not `chiron_trace.txt`.** A trace that
 shows `bridge returned 1` with no `engine reopened` after it means generation
 succeeded and the result was then thrown away — and only `chiron.txt` says why:
@@ -699,6 +842,10 @@ changes, and Scient's, to the in-memory image at startup.
 > a repeating leader enough room to say the same thing seven times and still be
 > cut off mid-word.
 
+`enabled`, `base_names` and `probe_protests` can also be flipped from
+[the menu](#the-menu) without a restart. That change is the session's — the ini
+still decides how the next game starts, and nothing here rewrites it.
+
 The bridge itself takes `--backend`, `--llamacpp-url`, `--ollama-url`,
 `--ollama-model`, `--claude-model` and `--temperature`. `--backend` is `auto`
 (the local three), one name, or a comma-separated chain tried left to right —
@@ -785,7 +932,9 @@ block that every shipped speech block uses.
 | `bridge/` | HTTP front end — synapd, llama.cpp or ollama — plus its user service |
 | `chiron.ini` | Runtime config, installed into the game folder |
 | `patch-imports.py` | Import-table redirect, with `--restore` |
-| `install.sh` | Build output → game folder, bridge service, import patch |
+| `se-rebalance.txt` | The optional Future Society rows, and why |
+| `apply-se-rebalance.py` | Splices them into an installed `alphax.txt`, `#SOCIO` block only |
+| `install.sh` | Build output → game folder, bridge service, import patch. `--se-rebalance` for the optional rules change |
 | `install.ps1` | The same on Windows, plus `-Restore`. Written, never run there |
 
 ## Credits

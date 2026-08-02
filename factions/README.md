@@ -23,17 +23,18 @@ displace one.** Installing the files and expecting them to appear is the failure
 mode this note exists to prevent — nothing errors, the picker simply shows the
 seven factions the ini names.
 
-To use these, edit two of those lines to `SUFFIC` and `ORACLE`. The vanilla ini
-is preserved in `_vanilla_backup/`.
+To use these, edit that many of those lines to `SUFFIC`, `ORACLE` and `ASSURE`.
+The vanilla ini is preserved in `_vanilla_backup/`.
 
 ```
 SUFFIC.TXT            Kaya's Sufficiency  — the degrowth argument
 ORACLE.TXT            The Cassandra Directorate — the information argument
+ASSURE.TXT            Vashti's Assurance — the argument about candour
 basenames/*.txt       expanded base-name pools (Chiron few-shots from these)
 validate.py           structural check against the shipped faction files
 ```
 
-## Why these two
+## Why these three
 
 Each faction in SMAC is an argument. The unfilled slots are where mods live —
 but "unfilled" has to be measured against the files, not against memory. Both
@@ -43,6 +44,7 @@ of these started adjacent to something that already ships, and moved:
 |---|---|---|
 | native-life degrowth faction | **Cult of Planet** is already `++PLANET -INDUSTRY -ECONOMY` with a Wealth aversion | eudaimonia instead of native life — `IMPUNITY, Eudaimonic`, which no faction uses |
 | probe/espionage specialist | **Data Angels** are `++PROBE, PROBECOST 75, TECHSHARE 3`; **University** is the exact inverse (`++RESEARCH --PROBE`) | not stealing secrets — knowing anyway, and being disbelieved for it |
+| merchant faction | **Morgan Industries** is the whole of that space — `++ECONOMY`, Free Market, wealth as virtue | not wealth but *candour* as the tradeable thing: a position stated is a position surrendered |
 
 ## The constraint that shaped both
 
@@ -57,6 +59,21 @@ A "diplomacy penalty" is therefore only half expressible in vanilla:
   `src/chiron.cpp`, because the dialogue is generated. That faction could not
   have existed in 1999.
 
+**Vashti's Assurance is the extreme case of the same problem.** A faction whose
+statements are unreliable has nothing at all to declare in `FACTION.TXT`: there
+is no honesty stat, and a `PENALTY` would only say the AI dislikes her. So the
+whole faction is a `deception` field on her persona — she overstates her
+strength and understates her need — and the file carries only the negotiator
+around it (`VOTES, 2`, `COMMERCE, 1`, `+ECONOMY`, `+PROBE`, `---POLICE`).
+
+This is the sharpest argument in the pack for why the mod exists. A scripted lie
+is read once and recognised forever; by the second playthrough the faction is
+just a faction with a tell. A generated lie has to be weighed against the map
+every time. And two existing rules bound it without any new machinery: **Chiron
+decides the words and never the outcome**, so a claim cannot change what a pact
+does, and the mandatory-value check discards any reply that misstates the
+technology or the credits on the table. She can only lie about herself.
+
 ## Mechanics claimed
 
 Three keywords were unused by all fourteen shipped factions, and two of them
@@ -67,6 +84,12 @@ are load-bearing here:
 | `IMPUNITY` | Cyborg only (`Cybernetic`) | Sufficiency (`Eudaimonic`) |
 | `PENALTY` | **none** | Sufficiency (`Free Market`) |
 | `COMMFREQ` | **none** | Directorate |
+| `COMMERCE` | Morgan only | Assurance |
+
+`VOTES` is used in both directions and is the one multiplier that reads as
+diplomacy: the Directorate ships `VOTES, 0` (trusted by nobody) against the
+Assurance's `VOTES, 2` — because a vote is a transaction, not a statement of
+belief, and she is very good at transactions.
 
 `PENALTY, Free Market` is how "no Free Market" gets said. The engine has no ban
 keyword — Morgan's inability to run Planned is hardcoded, not declared — so
@@ -81,7 +104,7 @@ parses every string one slot early and the faction talks nonsense with no error
 anywhere.
 
 ```sh
-./validate.py SUFFIC.TXT ORACLE.TXT
+./validate.py SUFFIC.TXT ORACLE.TXT ASSURE.TXT
 ```
 
 It compares against `GAIANS.TXT` in the installed game (override with `GAME=`),
@@ -105,7 +128,14 @@ from scratch without the region map:
 ```sh
 art/make_art.py suffic --donor GAIANS   # atlas + .flc
 art/make_art.py oracle --donor UNIV
+art/make_art.py assure --donor BELIEVE
+
+art/repaint_atlas.py assure.pcx --art assure3.pcx   # our face, donor's sprites
 ```
+
+Identify an existing faction's donor by matching `.flc` byte size against the
+game's: `oracle.flc` is `univ.flc`, `suffic.flc` is `gaians.flc`, `assure.flc`
+is `believe.flc`.
 
 **The donor also sets the faction's in-game colour**, so pick one that is not
 in the active roster or two factions share a colour. `2.pcx` and `3.pcx` are
@@ -132,13 +162,21 @@ voice/make_voice.py suffic --factions .. --install "$GAME"
 Text comes from the faction file's own `#BLURB` — the same passage the stock
 voices read — with the `^` attribution lines dropped. Piper lives inside the
 `chibi` package rather than on PATH, and there is one installed voice, so the
-two leaders are separated by pitch and tempo rather than by model. Output is
-mp3 / 22050 Hz / mono / 64 kbps, matching every shipped file exactly.
+leaders are separated by pitch and tempo rather than by model — see `TREATMENT`
+in the script, which needs an entry per stem or a new faction falls through to
+the untreated default. Output is mp3 / 22050 Hz / mono / 64 kbps, matching every
+shipped file exactly.
 
 ## Not done
 
 - **`VOTES, 0` is unverified.** Zero may read as "no votes" or as "unset". If
   the Council misbehaves, `VOTES, 1` is the safe fallback and costs only
   flavour.
-- The atlases are donor art. Bases, units and colours are Gaian and University
-  until someone repaints the regions.
+- **The Assurance's `---POLICE` is unverified.** It is meant to be a real cost
+  and may be too punishing next to `+ECONOMY`. If drone riots make the faction
+  unplayable rather than difficult, `--POLICE` is the fallback.
+- Base sprites, units and colours are still the donors' — Gaian, University and
+  Believer — because only the council and diplomacy regions are repainted.
+- **The DATALINKS portrait is not repainted on any of the three.** That region
+  is outside the set `repaint_atlas.py` handles, so each leader still wears the
+  donor's face on that one screen.
